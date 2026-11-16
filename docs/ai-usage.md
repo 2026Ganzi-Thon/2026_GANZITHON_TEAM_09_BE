@@ -26,10 +26,19 @@
 | 필요성 | 표준 라이브러리·Spring으로 30줄 안에 못 하는 일인가 |
 | 출처 | Maven Central 공식 좌표, 유지보수 중(최근 1년 안에 릴리스) |
 | 버전 | `gradle/libs.versions.toml`에 정확한 버전 고정 + 의존성 잠금 파일 갱신 |
-| 취약점 | PR의 GitHub 의존성 검토 통과(high 이상 없음) |
+| 취약점 | CI `dependencies` 작업(OSV-Scanner) 통과. 알려진 취약점이 하나라도 있으면 실패 |
 | 기록 | 아래 4절 표에 추가 |
 
-자동 검사: CI가 PR마다 의존성 그래프를 올리고(`dependency-submission`) 새로 들어온 의존성의 취약점을 검사한다(`dependency-review`, high 이상이면 실패). Dependabot이 주 1회 업데이트 PR을 연다.
+자동 검사: CI가 push·PR마다, 그리고 주 1회 `gradle.lockfile`의 모든 의존성(간접 의존성 포함 약 160개)을 OSV 취약점 DB와 대조한다(OSV-Scanner, 하나라도 있으면 실패). 잠금 파일이 실제 빌드와 다르면 Gradle 빌드가 먼저 실패하므로 검사 대상이 곧 실제 의존성이다. Dependabot이 주 1회 업데이트 PR을 연다.
+
+당장 고칠 수 없는 취약점은 레포 루트 `osv-scanner.toml`에 예외로 적는다. 예외마다 **이유(우리 코드가 그 기능을 쓰지 않는 근거)와 기한**을 쓰고, 기한이 지나면 검사가 다시 실패한다.
+
+```toml
+[[IgnoredVulns]]
+id = "GHSA-xxxx-xxxx-xxxx"
+ignoreUntil = 2026-12-31
+reason = "취약한 기능(XML 외부 엔티티)을 호출하는 코드가 없음. 상위 버전 출시 대기"
+```
 
 ## 4. 사용하는 외부 의존성
 
@@ -48,5 +57,6 @@
 | 2026-11-16 | 기획 문서 초안(prd·api·erd·architecture·UserFlow) | Claude Code | 팀 검토, 미션·점검 근거 논문을 원문과 대조 | 인용 연도 오류 1건 → 수정. 문서 사이 수치 불일치(시연 성장 수치) → 수정 |
 | 2026-11-16 | 프론트 전달 사항 대조, CSRF 설정 검토 | Claude Code | Spring Security 문서와 대조 | 기본 CSRF 설정으로는 첫 가입 요청이 403 → SPA 방식 + 쿠키 발급 필터로 문서 수정 |
 | 2026-11-16 | 백엔드 뼈대: Gradle 설정, 공통 에러 처리·보안 설정, ArchUnit·에러 응답·통합 테스트 | Claude Code | 버전은 Maven Central 메타데이터로, 클래스 위치는 Spring Boot 4.1·Testcontainers 2.0 API 문서로 대조. 테스트 16개 통과(실제 PostgreSQL 16 포함) | AI가 처음 고른 Boot 4.0은 지원 6주 남음 → 4.1.2. 쿠키 발급 테스트가 다른 테스트 뒤에서만 실패 → 테스트 도구 `csrf()`의 부작용으로 확인, 실제 흐름으로 테스트 교체 |
+| 2026-11-16 | 의존성 검사를 OSV-Scanner로 교체, main 보호·비밀값 검사 Git 훅 | Claude Code | 취약한 log4j 2.14.1 가짜 잠금 파일 → 검사 실패 확인. main 푸시·가짜 비밀값 커밋 → 훅이 거부하는 것 확인 | 레포 권한이 write뿐이라 GitHub 의존성 검토를 쓸 수 없음 → 레포 설정이 필요 없는 도구로 교체. 액션·이미지는 1개월 지난 릴리스를 다이제스트로 고정 |
 
 구현을 시작하면 PR 단위로 이 표에 한 줄씩 추가한다.

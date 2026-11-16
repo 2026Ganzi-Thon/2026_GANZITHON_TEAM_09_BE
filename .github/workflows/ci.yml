@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # 코드가 그대로여도 새 취약점이 공개되므로 주 1회 다시 검사한다(월요일 09:00 KST).
+  schedule:
+    - cron: '0 0 * * 1'
 
 permissions:
   contents: read
@@ -49,35 +52,16 @@ jobs:
             build/reports/tests/test
             build/reports/jacoco/test/html
 
-  # SEC-14: main의 의존성 그래프를 GitHub에 올려 Dependabot 알림을 받는다.
-  dependency-graph:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Gradle 뼈대 확인
-        id: gradle
-        run: echo "exists=$( [ -f gradlew ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-java@v4
-        if: steps.gradle.outputs.exists == 'true'
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: gradle/actions/dependency-submission@v4
-        if: steps.gradle.outputs.exists == 'true'
-
-  # SEC-14: PR에서 새로 들어온 의존성에 high 이상 취약점이 있으면 실패.
+  # SEC-14: 잠금 파일(gradle.lockfile)의 모든 의존성을 OSV 취약점 DB와 대조한다. 하나라도 있으면 실패.
+  # 레포 관리자 설정(Dependency graph) 없이 돈다. 이미지는 태그와 다이제스트로 고정한다.
+  # 잠금 파일이 실제 빌드와 다르면 test 작업의 Gradle이 먼저 실패하므로, 여기서 보는 목록이 곧 실제 의존성이다.
+  # 예외가 필요하면 osv-scanner.toml에 이유와 기한을 적는다(docs/ai-usage.md 3절).
   dependencies:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          comment-summary-in-pr: on-failure
+      - name: OSV-Scanner
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" \
+            ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
+            scan source -L gradle.lockfile:/src/gradle.lockfile
