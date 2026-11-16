@@ -16,7 +16,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: gitleaks
@@ -29,7 +29,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Gradle 뼈대 확인
         id: gradle
         run: echo "exists=$( [ -f gradlew ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
@@ -59,7 +59,7 @@ jobs:
   dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: OSV-Scanner
         run: |
           docker run --rm -v "${{ github.workspace }}:/src" \
