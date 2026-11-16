@@ -31,11 +31,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+
 /**
  * 예상 밖 요청도 {@code {code, message}}로 답하는지(SEC-12), 시큐리티 단계 거절도 같은 모양인지(SEC-01·04) 확인한다.
  * DB·Docker 없이 돈다.
  */
-@WebMvcTest
+@WebMvcTest(
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = "com\\.haengunping\\.(account|group)\\.api\\..*"
+        )
+)
 @Import({SecurityConfig.class, ErrorResponseTest.ProbeController.class})
 class ErrorResponseTest {
 

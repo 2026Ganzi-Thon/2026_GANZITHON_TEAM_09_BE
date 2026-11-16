@@ -17,6 +17,9 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
+
+import org.springframework.beans.factory.ObjectProvider;
+
 /**
  * 공통 보안 설정(architecture 보안 표, SEC-01·04·07·12).
  *
@@ -36,7 +39,8 @@ public class SecurityConfig {
     SecurityFilterChain apiSecurity(
             HttpSecurity http,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver,
-            @Value("${haengunping.cookie-secure:true}") boolean cookieSecure) throws Exception {
+            @Value("${haengunping.cookie-secure:true}") boolean cookieSecure,
+            ObjectProvider<ApiSecurityCustomizer> customizers) throws Exception {
 
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookieCustomizer(cookie -> cookie.path("/").secure(cookieSecure).sameSite("Lax"));
@@ -63,6 +67,11 @@ public class SecurityConfig {
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((request, response, e) -> resolver.resolveException(request, response, null, e))
                         .accessDeniedHandler((request, response, e) -> resolver.resolveException(request, response, null, e)));
+
+        // 담당 세션 인증 필터 추가(A)
+        for (ApiSecurityCustomizer customizer : customizers) {
+            customizer.customize(http);
+        }
 
         return http.build();
     }
