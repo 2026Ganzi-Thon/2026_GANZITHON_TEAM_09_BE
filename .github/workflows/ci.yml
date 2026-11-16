@@ -38,7 +38,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         if: steps.gradle.outputs.exists == 'true'
       - name: 테스트 + 커버리지 (Testcontainers는 러너의 Docker 사용)
         if: steps.gradle.outputs.exists == 'true'
