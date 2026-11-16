@@ -209,7 +209,7 @@ MVP는 서버 1대를 가정해 단순하게 만들었다. 사용자가 늘면 �
 | 통합 | Spring Boot Test + Testcontainers(PostgreSQL) | API 전체, 권한(SEC-01~03), 동시 참여 6명 제한 |
 | 구조 | ArchUnit | 모듈 사이 규칙(2.2절), `LocalDate.now()` 직접 호출 금지(DEMO-02) |
 | 보안 | 통합 테스트 + gitleaks | SEC-01~13 |
-| 의존성 | Gradle 의존성 잠금 + GitHub 의존성 검토(PR에서 high 이상 취약점이면 실패) + Dependabot 주 1회 | SEC-14 |
+| 의존성 | Gradle 의존성 잠금 + OSV-Scanner로 잠금 파일 전체 검사(push·PR·주 1회, 취약점 하나라도 있으면 실패) + Dependabot 주 1회 | SEC-14 |
 | 커버리지 | JaCoCo. 도메인 규칙 패키지(`*.domain`) 줄 커버리지 80% 미만이면 CI 실패 | — |
 
 - 테스트 이름에 PRD ID를 붙인다. 예: `CHR02_완료한_구성원이_23시에_나가면_분모와_분자에서_빠진다`.

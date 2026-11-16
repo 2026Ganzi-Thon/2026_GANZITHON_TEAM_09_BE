@@ -1,0 +1,17 @@
+#!/bin/sh
+# 팀 규칙: 비밀값을 커밋하지 않는다(SEC-10). 공개 레포라 한 번 올라가면 지워도 남는다.
+# gitleaks가 있으면 그것으로, 없으면 Docker로 검사한다. 둘 다 없으면 경고만 하고 넘어간다(CI가 다시 검사).
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks protect --staged --redact --config .gitleaks.toml
+fi
+
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  root=$(git rev-parse --show-toplevel)
+  MSYS_NO_PATHCONV=1 docker run --rm -v "$root:/repo" -w /repo ghcr.io/gitleaks/gitleaks:v8.21.2 \
+    protect --staged --redact --config /repo/.gitleaks.toml --source /repo
+  exit $?
+fi
+
+echo "경고: gitleaks도 Docker도 없어 비밀값 검사를 건너뜁니다. CI의 secrets 작업이 다시 검사합니다."
+exit 0

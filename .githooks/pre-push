@@ -1,0 +1,14 @@
+#!/bin/sh
+# 팀 규칙: main에는 직접 푸시하지 않는다. 브랜치에서 PR → 리뷰 1명 → CI 통과 후 머지.
+# 레포 설정으로 main을 보호할 권한이 없어서 각자 PC에서 막는다.
+# 켜기(클론마다 한 번): git config core.hooksPath .githooks
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "main에 직접 푸시할 수 없습니다. 브랜치를 만들어 PR을 올려 주세요."
+    echo "  git switch -c feat/<모듈>-<내용>"
+    echo "  git push -u origin HEAD"
+    exit 1
+  fi
+done
+exit 0

@@ -78,15 +78,48 @@ API는 `http://localhost:8080/api/v1`, 상태 확인은 `GET /api/v1/health`입�
 
 ## 협업 규칙
 
-- 브랜치: `main` 보호, 작업은 `feat/<모듈>-<내용>` → PR → 리뷰 1명 이상 → CI 통과 후 머지
-- 마이그레이션: `V<yyyyMMddHHmm>__<설명>.sql`, 자기 모듈 테이블만([erd.md](docs/erd.md) 6절)
-- 응답 모양을 바꾸면 [docs/api.md](docs/api.md)를 같은 PR에서 고치고 프론트에 알립니다.
-- 비밀값은 `.env`에만 둡니다. 이 레포는 공개 레포입니다. 커밋 전에 gitleaks를 돌립니다.
+이 레포는 대회 organization 소유라 우리 팀에는 설정 권한이 없습니다. 그래서 main 보호를 GitHub가 아니라 **팀 규칙과 각자 PC의 Git 훅**으로 지킵니다.
+
+**클론한 뒤 한 번만** 훅을 켭니다.
 
 ```bash
-gitleaks protect --staged --redact
+git config core.hooksPath .githooks
 ```
 
+- `pre-push`: main에 직접 푸시하면 거부합니다.
+- `pre-commit`: 스테이징한 파일에 비밀값이 있으면 커밋을 거부합니다(gitleaks, 없으면 Docker로 실행).
+
+**작업 순서**
+
+```bash
+git switch main
+```
+
+```bash
+git pull
+```
+
+```bash
+git switch -c feat/<모듈>-<내용>
+```
+
+작업하고 커밋한 뒤 브랜치를 올립니다.
+
+```bash
+git push -u origin HEAD
+```
+
+GitHub에서 PR을 열고, 리뷰 1명의 승인과 CI 초록불(test·secrets·dependencies)을 확인한 뒤 **Squash and merge**로 합칩니다.
+
+**규칙**
+
+- main에 직접 푸시하지 않습니다. 훅을 `--no-verify`로 우회하지 않습니다.
+- 리뷰는 돌아가며 봅니다: A → B, B → C, C → A.
+- CI가 빨간불이면 머지하지 않습니다. 의존성 검사가 실패하면 버전을 올리거나 [docs/ai-usage.md](docs/ai-usage.md) 3절대로 예외를 적습니다.
+- 의존성을 바꾸면 잠금 파일을 갱신해 같은 PR에 올립니다: `./gradlew dependencies --write-locks`
+- 마이그레이션: `V<yyyyMMddHHmm>__<설명>.sql`, 자기 모듈 테이블만([erd.md](docs/erd.md) 6절). 머지된 마이그레이션은 고치지 않고 새 파일로 바꿉니다.
+- 응답 모양을 바꾸면 [docs/api.md](docs/api.md)를 같은 PR에서 고치고 프론트에 알립니다.
+- 비밀값은 `.env`에만 둡니다. 이 레포는 공개 레포입니다.
 - AI로 만든 코드는 PR 템플릿의 확인 항목을 채웁니다([docs/ai-usage.md](docs/ai-usage.md)).
 
 ## 팀
