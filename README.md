@@ -80,16 +80,56 @@ API는 `http://localhost:8080/api/v1`, 상태 확인은 `GET /api/v1/health`입�
 
 이 레포는 대회 organization 소유라 우리 팀에는 설정 권한이 없습니다. 그래서 main 보호를 GitHub가 아니라 **팀 규칙과 각자 PC의 Git 훅**으로 지킵니다.
 
-**클론한 뒤 한 번만** 훅을 켭니다.
+### Git 훅
+
+**훅이란:** `git commit`이나 `git push`를 할 때 Git이 자동으로 먼저 실행하는 스크립트입니다. 스크립트가 실패하면 커밋·푸시가 멈춥니다. 이 레포는 `.githooks/` 폴더에 두 개를 둡니다.
+
+| 훅 | 언제 도나 | 무엇을 막나 |
+| --- | --- | --- |
+| `pre-commit` | `git commit` 직전 | 커밋하려는 파일에 API 키·비밀번호 같은 비밀값이 있으면 커밋을 거부합니다(gitleaks) |
+| `pre-push` | `git push` 직전 | main 브랜치에 바로 푸시하면 거부합니다 |
+
+**켜기: 클론한 뒤 한 번만** 레포 폴더에서 실행합니다. 클론을 새로 받으면 다시 해야 합니다.
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-- `pre-push`: main에 직접 푸시하면 거부합니다.
-- `pre-commit`: 스테이징한 파일에 비밀값이 있으면 커밋을 거부합니다(gitleaks, 없으면 Docker로 실행).
+켜졌는지 확인합니다. `.githooks`가 나오면 켜진 것입니다.
 
-**작업 순서**
+```bash
+git config core.hooksPath
+```
+
+**필요한 것:** `pre-commit`은 gitleaks가 설치돼 있으면 그것을, 없으면 Docker로 gitleaks를 실행합니다. 둘 다 없으면 경고만 하고 커밋을 통과시킵니다(CI가 다시 검사). Windows에서는 Git for Windows(Git Bash)가 훅을 실행하므로 따로 설치할 것은 없습니다.
+
+**막혔을 때**
+
+1. `main에 직접 푸시할 수 없습니다`가 나왔다 → main에서 커밋한 것입니다. 커밋을 브랜치로 옮깁니다.
+
+   ```bash
+   git switch -c feat/<모듈>-<내용>
+   ```
+
+   ```bash
+   git push -u origin HEAD
+   ```
+
+   그다음 내 PC의 main을 원래대로 되돌립니다(방금 만든 브랜치에 커밋이 남아 있으므로 지워지지 않습니다).
+
+   ```bash
+   git branch -f main origin/main
+   ```
+
+2. `leaks found`가 나왔다 → 출력의 `File:`·`Line:` 위치를 봅니다.
+   - 진짜 비밀값이면 코드에서 빼고 `.env`로 옮깁니다. 코드는 `${DB_PASSWORD}`처럼 환경변수 이름만 씁니다.
+   - 비밀값이 아닌데 걸렸다면(예: 테스트용 가짜 값) C에게 알려 `.gitleaks.toml` 예외에 넣습니다. 혼자 판단해 훅을 건너뛰지 않습니다.
+
+3. 이미 비밀값을 푸시했다 → 지워도 GitHub 기록에 남습니다. 바로 C에게 알리고 그 키를 **새로 발급**해 바꿉니다.
+
+**우회하지 않습니다.** `git commit --no-verify`, `git push --no-verify`는 훅을 건너뜁니다. 서버가 막아 주지 않으므로 팀 규칙으로 쓰지 않습니다.
+
+### 작업 순서
 
 ```bash
 git switch main
@@ -111,7 +151,7 @@ git push -u origin HEAD
 
 GitHub에서 PR을 열고, 리뷰 1명의 승인과 CI 초록불(test·secrets·dependencies)을 확인한 뒤 **Squash and merge**로 합칩니다.
 
-**규칙**
+### 규칙
 
 - main에 직접 푸시하지 않습니다. 훅을 `--no-verify`로 우회하지 않습니다.
 - 리뷰는 돌아가며 봅니다: A → B, B → C, C → A.
