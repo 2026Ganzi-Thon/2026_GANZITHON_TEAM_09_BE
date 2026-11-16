@@ -33,7 +33,7 @@ jobs:
       - name: Gradle 뼈대 확인
         id: gradle
         run: echo "exists=$( [ -f gradlew ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: steps.gradle.outputs.exists == 'true'
         with:
           distribution: temurin
