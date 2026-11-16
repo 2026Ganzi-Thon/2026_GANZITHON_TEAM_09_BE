@@ -1,0 +1,5 @@
+# 팀원 OS와 상관없이 레포에는 LF로 저장한다. CI(리눅스)에서 gradlew가 CRLF면 실행되지 않는다.
+* text=auto eol=lf
+*.bat text eol=crlf
+gradlew text eol=lf
+*.jar binary

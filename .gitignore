@@ -1,0 +1,31 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Gradle·빌드
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+bin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# 로그·덤프
+*.log
+logs/
+*.dump
+*.sql.gz
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,20 @@
+# 로컬 개발용 PostgreSQL. 값은 .env에서 읽는다(cp .env.example .env).
+# 실행: docker compose up -d db
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: haengunping
+      POSTGRES_USER: ${DB_USERNAME:?.env에 DB_USERNAME을 넣어 주세요}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?.env에 DB_PASSWORD를 넣어 주세요}
+    ports:
+      - "127.0.0.1:5432:5432"   # 이 PC에서만 접속
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d haengunping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db-data:

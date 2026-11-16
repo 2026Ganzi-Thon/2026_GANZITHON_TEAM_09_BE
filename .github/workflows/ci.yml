@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # SEC-10: 공개 레포라 커밋 이력 전체에서 비밀값을 찾는다.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.21.2 \
+            detect --source=/repo --config=/repo/.gitleaks.toml --redact -v
+
+  # 빌드·테스트·커버리지. Gradle 뼈대(gradlew)가 생기기 전에는 각 단계를 건너뛴다.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gradle 뼈대 확인
+        id: gradle
+        run: echo "exists=$( [ -f gradlew ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        if: steps.gradle.outputs.exists == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.gradle.outputs.exists == 'true'
+      - name: 테스트 + 커버리지 (Testcontainers는 러너의 Docker 사용)
+        if: steps.gradle.outputs.exists == 'true'
+        run: ./gradlew test jacocoTestReport jacocoTestCoverageVerification --no-daemon
+      - name: 테스트 리포트 올리기
+        if: always() && steps.gradle.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/test
+            build/reports/jacoco/test/html
+
+  # SEC-14: main의 의존성 그래프를 GitHub에 올려 Dependabot 알림을 받는다.
+  dependency-graph:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gradle 뼈대 확인
+        id: gradle
+        run: echo "exists=$( [ -f gradlew ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        if: steps.gradle.outputs.exists == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/dependency-submission@v4
+        if: steps.gradle.outputs.exists == 'true'
+
+  # SEC-14: PR에서 새로 들어온 의존성에 high 이상 취약점이 있으면 실패.
+  dependencies:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

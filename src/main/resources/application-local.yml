@@ -1,0 +1,8 @@
+# 로컬 개발: ./gradlew bootRun --args='--spring.profiles.active=local'
+# 사파리는 http에서 Secure 쿠키를 저장하지 않으므로 로컬에서만 끈다.
+haengunping:
+  cookie-secure: ${COOKIE_SECURE:false}
+
+logging:
+  level:
+    com.haengunping: DEBUG
