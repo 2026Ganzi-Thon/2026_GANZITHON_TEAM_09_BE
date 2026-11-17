@@ -8,7 +8,6 @@ import com.haengunping.mood.infra.MoodRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class MoodService implements MoodQuery {
-
-    private static final List<Mood> LOW_MOODS = Arrays.stream(Mood.values()).filter(Mood::isLow).toList();
 
     private final MoodRepository moods;
     private final Clock clock;
@@ -49,6 +46,6 @@ public class MoodService implements MoodQuery {
 
     @Override
     public int lowMoodDaysInWeek(long userId, LocalDate weekStart) {
-        return moods.countByUserIdAndDateBetweenAndMoodIn(userId, weekStart, weekStart.plusDays(6), LOW_MOODS);
+        return moods.countByUserIdAndDateBetweenAndMoodIn(userId, weekStart, weekStart.plusDays(6), Mood.LOW);
     }
 }
