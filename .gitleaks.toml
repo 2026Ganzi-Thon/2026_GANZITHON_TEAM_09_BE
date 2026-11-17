@@ -10,5 +10,9 @@ regex = '''(?i)(DATA_GO_KR_KEY|VAPID_PRIVATE_KEY|DB_PASSWORD)[ \t]*[:=][ \t]*['"
 keywords = ["data_go_kr_key", "vapid_private_key", "db_password"]
 
 [allowlist]
-description = "예시 파일"
-paths = ['''\.env\.example$''']
+description = "예시 파일, 테스트용 가짜 키"
+# WebPushCryptoTest.java: 웹 푸시 암호화 테스트에 고정된 가짜 VAPID 키가 들어간다(B, NOTI). 실제 키는 .env에만.
+paths = [
+  '''\.env\.example$''',
+  '''(^|/)WebPushCryptoTest\.java$''',
+]
