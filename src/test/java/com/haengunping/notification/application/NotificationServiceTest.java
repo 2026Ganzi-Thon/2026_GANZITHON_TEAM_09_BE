@@ -9,8 +9,8 @@ import com.haengunping.notification.domain.PushSubscription;
 import com.haengunping.notification.infra.PushSubscriptionRepository;
 import com.haengunping.support.IntegrationTest;
 import java.time.LocalTime;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,14 +24,23 @@ class NotificationServiceTest extends IntegrationTest {
     @Autowired
     JdbcTemplate jdbc;
 
-    private final long me = ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE);
-    private final long other = me - 1;
-    private final String endpoint = "https://fcm.googleapis.com/fcm/send/" + me;
+    private long me;
+    private long other;
+    private String endpoint;
+
+    @BeforeEach
+    void createUsers() {
+        me = createUser();
+        other = createUser();
+        endpoint = "https://fcm.googleapis.com/fcm/send/" + me;
+    }
 
     @AfterEach
     void cleanUp() {
         jdbc.update("DELETE FROM push_subscriptions WHERE user_id IN (?, ?)", me, other);
         jdbc.update("DELETE FROM notification_settings WHERE user_id IN (?, ?)", me, other);
+        deleteUser(me);
+        deleteUser(other);
     }
 
     @Test

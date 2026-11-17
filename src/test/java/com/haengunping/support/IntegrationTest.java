@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
@@ -25,4 +26,18 @@ public abstract class IntegrationTest {
 
     @Autowired
     protected MockMvc mvc;
+
+    @Autowired
+    private JdbcClient userJdbc;
+
+    /** 외래 키를 만족하는 사용자 행을 만들고 id를 준다. 정리는 {@link #deleteUser}로, 그 사용자의 데이터를 지운 뒤에. */
+    protected long createUser() {
+        return userJdbc.sql("INSERT INTO users (last_seen_at, created_at) VALUES (now(), now()) RETURNING id")
+                .query(Long.class)
+                .single();
+    }
+
+    protected void deleteUser(long userId) {
+        userJdbc.sql("DELETE FROM users WHERE id = :id").param("id", userId).update();
+    }
 }
