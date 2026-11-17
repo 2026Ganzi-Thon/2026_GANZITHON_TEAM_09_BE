@@ -27,6 +27,11 @@ updates:
       interval: weekly
       day: monday
       timezone: Asia/Seoul
+    # Java 메이저는 build.gradle.kts 툴체인(21)과 함께 사람이 올린다.
+    # 이미지만 25로 올라가면 빌드 이미지에 JDK 21이 없어 배포 빌드가 깨진다(#24, 2026-11-18 되돌림).
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker-compose
     directory: /
@@ -34,3 +39,7 @@ updates:
       interval: weekly
       day: monday
       timezone: Asia/Seoul
+    # PostgreSQL 메이저가 바뀌면 기존 데이터 볼륨을 그대로 못 읽는다(덤프·복원 필요). 사람이 올린다.
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]

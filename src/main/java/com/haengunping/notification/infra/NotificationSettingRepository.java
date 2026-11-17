@@ -16,4 +16,8 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
             SET mission_reminder_time = EXCLUDED.mission_reminder_time, weekly_check_reminder = EXCLUDED.weekly_check_reminder
             """)
     void upsert(long userId, LocalTime missionReminderTime, boolean weeklyCheckReminder);
+
+    @Modifying
+    @Query("DELETE FROM NotificationSetting s WHERE s.userId = :userId")
+    int deleteByUserId(long userId);
 }
