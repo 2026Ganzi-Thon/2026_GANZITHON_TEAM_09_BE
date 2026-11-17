@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/health").permitAll()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/accounts").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/help/items").permitAll()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/push/vapid-public-key").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling

@@ -38,3 +38,5 @@ haengunping:
   jobs:
     # RUNNING인 채로 이 시간이 지나면 서버가 죽은 실행으로 보고 다시 실행한다(common.job.JobRuns).
     stale-after: PT1H
+  vapid:
+    public-key: ${VAPID_PUBLIC_KEY:}
