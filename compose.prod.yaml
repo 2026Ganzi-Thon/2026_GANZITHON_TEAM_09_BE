@@ -1,0 +1,74 @@
+# 시연 서버용 Compose. 서버 1대에 proxy(Caddy) · api(Spring Boot) · db(PostgreSQL)를 올린다.
+# 사용법은 docs/deploy.md. 직접 부르지 말고 deploy/deploy.sh로 실행한다.
+# 값은 같은 폴더의 .env에서 읽는다(deploy/.env.prod.example 참고).
+name: haengunping
+
+services:
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?.env에 SITE_ADDRESS(도메인 이름)를 넣어 주세요}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # 프론트 빌드 결과(dist). deploy.sh가 프론트 저장소에서 만든다.
+      - ${FRONTEND_DIR:-../frontend}/dist:/srv:ro
+      # 인증서. 지우면 다시 발급받아야 하고, 자주 지우면 발급 횟수 제한에 걸린다.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+    mem_limit: 128m
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DB_URL: jdbc:postgresql://db:5432/haengunping
+      DB_USERNAME: ${DB_USERNAME:?.env에 DB_USERNAME을 넣어 주세요}
+      DB_PASSWORD: ${DB_PASSWORD:?.env에 DB_PASSWORD를 넣어 주세요}
+      DATA_GO_KR_KEY: ${DATA_GO_KR_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      COOKIE_SECURE: "true"
+      # Caddy가 붙인 X-Forwarded-For/Proto를 믿는다(사용자 IP로 요청 제한, https 여부).
+      # Tomcat은 사설 IP(도커 네트워크)에서 온 헤더만 믿고, api 포트는 밖에 열지 않는다.
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      TZ: Asia/Seoul
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    # 포트를 열지 않는다. proxy만 도커 네트워크 안에서 api:8080으로 부른다.
+    expose:
+      - "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 1g
+    stop_grace_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: haengunping
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+    # 포트를 열지 않는다. 백업·조회는 `docker compose exec db ...`로 한다.
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d haengunping"]
+      interval: 5s
+      retries: 20
+    mem_limit: 384m
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

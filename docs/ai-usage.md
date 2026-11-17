@@ -49,6 +49,7 @@ reason = "취약한 기능(XML 외부 엔티티)을 호출하는 코드가 없�
 | Bucket4j | 요청 횟수 제한(SEC-08) | 메모리 버킷, Redis로 확장 가능 | 추가할 때 기록 |
 | 웹 푸시(VAPID) 라이브러리 | 웹 푸시(NOTI) | 후보 `nl.martijndwars:web-push`는 마지막 릴리스가 오래돼 3절 기준에 걸림. 추가 전에 대안 검토 | 추가할 때 기록 |
 | JUnit 5, Testcontainers(Boot BOM), ArchUnit 1.5.1, JaCoCo | 테스트 | 실제 PostgreSQL로 통합 테스트, 구조 규칙 | 고은우 2026-11-16 |
+| Docker 공식 이미지: `eclipse-temurin:21-jdk/jre-noble`, `postgres:16-alpine`, `caddy:2.10-alpine`, `node:24-alpine` | 시연 서버 배포(`Dockerfile`, `compose.prod.yaml`, `deploy.sh`) | 공식 이미지, Arm 서버용 이미지 제공. Java 21·PostgreSQL 16은 개발 환경과 같은 버전, Node 24는 현재 LTS. Dependabot이 주 1회 태그 갱신 | 고은우 2026-11-17 |
 
 ## 5. AI 사용·검증 기록
 
@@ -59,5 +60,7 @@ reason = "취약한 기능(XML 외부 엔티티)을 호출하는 코드가 없�
 | 2026-11-16 | 백엔드 뼈대: Gradle 설정, 공통 에러 처리·보안 설정, ArchUnit·에러 응답·통합 테스트 | Claude Code | 버전은 Maven Central 메타데이터로, 클래스 위치는 Spring Boot 4.1·Testcontainers 2.0 API 문서로 대조. 테스트 16개 통과(실제 PostgreSQL 16 포함) | AI가 처음 고른 Boot 4.0은 지원 6주 남음 → 4.1.2. 쿠키 발급 테스트가 다른 테스트 뒤에서만 실패 → 테스트 도구 `csrf()`의 부작용으로 확인, 실제 흐름으로 테스트 교체 |
 | 2026-11-16 | 의존성 검사를 OSV-Scanner로 교체, main 보호·비밀값 검사 Git 훅 | Claude Code | 취약한 log4j 2.14.1 가짜 잠금 파일 → 검사 실패 확인. main 푸시·가짜 비밀값 커밋 → 훅이 거부하는 것 확인 | 레포 권한이 write뿐이라 GitHub 의존성 검토를 쓸 수 없음 → 레포 설정이 필요 없는 도구로 교체. 액션·이미지는 1개월 지난 릴리스를 다이제스트로 고정 |
 | 2026-11-17 | 공용 예약 작업 기록 `job_runs`(`common.job.JobRuns`) | Claude Code | 테스트를 먼저 쓰고(같은 날짜 한 번만, 실패 후 재실행, 8개 스레드 동시 호출, 죽은 실행 재실행, 밀린 날짜 순서) 실제 PostgreSQL로 10개 통과, 3회 반복해도 통과. 보완한 조건을 일부러 빼고 돌려 테스트가 실패하는 것 확인 | 오래 걸린 옛 실행이 끝나면서 새 실행의 기록을 DONE으로 덮어쓸 수 있었음 → 실행마다 started_at을 표식으로 써서 자기 기록만 끝내게 수정. 처음 쓴 테스트는 이 버그를 못 잡는 순서였음 → 위험한 순서로 테스트를 다시 씀 |
+| 2026-11-17 | 도움받을 곳 목록 API `GET /help/items`, 시드(채널·상담 12개 + 서울 25개 구 센터) | Claude Code | 항목 ID를 프론트 목업과 대조, 실제 PostgreSQL로 통합 테스트 7개(쿠키 없이 조회, 24시간 채널 우선 정렬, 구 조건, 규칙 키, ETag 304) | 웹 슬라이스 테스트가 새 컨트롤러까지 올려 기존 에러 응답 테스트가 깨짐 → 테스트 대상 컨트롤러를 지정. 구 센터 전화·주소는 시연 전 다시 확인 필요(남은 일) |
+| 2026-11-17 | 시연 서버 배포 설정(Dockerfile, 운영 Compose, Caddyfile, deploy.sh, deploy.md) | Claude Code | 로컬에서 이미지 빌드 후 Caddy+api+db를 실제로 띄워 확인: 헬스·목록 200, http→https 308, 화면·API CSP와 HSTS, 정적 파일 캐시, api가 root가 아님, 메모리 사용량. 빌드된 화면에 인라인 스크립트가 없는 것 확인 | Compose 오류 문구 속 콜론 때문에 YAML이 깨짐 → 문구 수정. 처음 쓴 점검표의 `curl -I`(HEAD)는 API에서 401이 나와 헤더 확인이 안 됨 → GET으로 수정. 프론트가 Google Fonts와 서비스 워커 글꼴 캐시를 써서 `'self'`만으로는 막힘 → 글꼴 도메인만 허용 |
 
 구현을 시작하면 PR 단위로 이 표에 한 줄씩 추가한다.
