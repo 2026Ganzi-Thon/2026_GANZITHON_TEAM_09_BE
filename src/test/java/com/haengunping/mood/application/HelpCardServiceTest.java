@@ -10,8 +10,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -30,13 +30,19 @@ class HelpCardServiceTest extends IntegrationTest {
     @Autowired
     TransactionTemplate tx;
 
-    private final long me = ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE);
+    private long me;
+
+    @BeforeEach
+    void createMe() {
+        me = createUser();
+    }
 
     @AfterEach
     void cleanUp() {
         tx.executeWithoutResult(s -> {
             moods.deleteByUserId(me);
             dismissals.deleteById(me);
+            deleteUser(me);
         });
     }
 
