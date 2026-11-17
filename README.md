@@ -17,6 +17,7 @@
 | [docs/erd.md](docs/erd.md) | 테이블·제약·인덱스·삭제 규칙 |
 | [docs/architecture.md](docs/architecture.md) | 모듈 구조, 예약 작업, 배포, 보안 구성, 테스트 |
 | [docs/UserFlow.md](docs/UserFlow.md) | 화면 ID(S01~S53)와 흐름 |
+| [docs/deploy.md](docs/deploy.md) | 시연 서버(AWS VM 1대) 만들기·배포·백업·배포 후 보안 점검 |
 | [docs/decisions.md](docs/decisions.md) | 설계 결정과 이유·대안·한계 |
 | [docs/ai-usage.md](docs/ai-usage.md) | AI 생성 코드·외부 의존성 검증 기록 |
 | [SECURITY.md](SECURITY.md) | 위협·대응·테스트·남은 위험 |

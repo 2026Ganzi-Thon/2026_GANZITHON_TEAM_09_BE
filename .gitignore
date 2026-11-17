@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.pem
 *.key
 
@@ -25,6 +26,7 @@ bin/
 logs/
 *.dump
 *.sql.gz
+backups/
 
 # OS
 .DS_Store

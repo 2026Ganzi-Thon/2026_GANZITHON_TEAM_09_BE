@@ -19,3 +19,18 @@ updates:
       interval: weekly
       day: monday
       timezone: Asia/Seoul
+
+  # Dockerfile·compose.prod.yaml의 이미지 태그(temurin, caddy, postgres)
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Seoul
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Seoul

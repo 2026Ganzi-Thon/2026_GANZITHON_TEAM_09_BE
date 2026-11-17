@@ -2,7 +2,7 @@
 
 - 2026년 11월 16일 작성 · @고은우
 - 요구사항: [prd.md](prd.md) · API: [api.md](api.md) · 데이터: [erd.md](erd.md) · 화면: [UserFlow.md](UserFlow.md)
-- 배포 방식(4절)은 **제안**이다. 대회 환경이 정해지면 고친다.
+- 배포는 AWS VM 1대로 정했다(4절, 대회가 서버를 주지 않음).
 
 ## 1. 한눈에 보기
 
@@ -137,16 +137,18 @@ sequenceDiagram
 - 확정 처리는 **00:10 내보내기보다 먼저** 끝나야 한다. 내보내기 작업은 시작할 때 그날 `FINALIZE_PROGRESS`가 `DONE`인지 확인하고, 아니면 먼저 확정 처리를 부른다.
 - 시연 시계를 바꾸면(`PUT /demo/clock`) 확정 처리를 바로 한 번 부른다.
 
-## 4. 배포 (제안)
+## 4. 배포
+
+절차·명령은 [deploy.md](deploy.md)에 있다.
 
 | 항목 | 안 |
 | --- | --- |
-| 서버 | 클라우드 VM 1대(2 vCPU, 4GB) |
+| 서버 | AWS EC2 `t4g.small` 1대(2 vCPU, 2GB, Arm, 서울) + 스왑 2GB. 도메인은 DuckDNS. 서버리스(Cloud Run)·Vercel은 예약 작업과 같은 출처 쿠키 때문에 쓰지 않음 |
 | 실행 | Docker Compose: `proxy`(Caddy + 프론트 `dist`), `api`(Spring Boot, Java 21), `db`(PostgreSQL 16) |
 | 프록시 | Caddy. HTTPS 인증서 자동 발급, `/api/*` → api, 나머지 → 프론트 정적 파일(없는 경로는 `index.html`) |
 | 환경 | 프로필 `local`, `demo`. 시연 서버는 `demo`(시연 시계·시드 켜짐). `local`만 쿠키 `Secure`를 끌 수 있다(사파리는 http에서 Secure 쿠키를 저장하지 않음) |
-| 비밀값 | `.env`를 Compose가 읽음. 저장소에는 `.env.example`만 |
-| DB 백업 | 시연 전날 `pg_dump` 1회, 시드로 언제든 다시 만들 수 있게 함 |
+| 비밀값 | 서버의 `.env`(권한 600)를 Compose가 읽음. 저장소에는 양식(`.env.example`, `deploy/.env.prod.example`)만 |
+| DB 백업 | `deploy.sh`가 배포마다 직전 `pg_dump`, 시연 전날 따로 1회. 시드로 언제든 다시 만들 수 있게 함 |
 | CI | GitHub Actions: 빌드 → 테스트(Testcontainers PostgreSQL) → JaCoCo 커버리지 → gitleaks → 의존성 취약점 검사. Dependabot 주 1회 |
 
 ### 4.1 서버를 늘릴 때 (MVP 밖)

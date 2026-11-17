@@ -23,7 +23,7 @@
 | T3 | CSRF | `CookieCsrfTokenRepository` + SPA 방식 처리기, 모든 응답에 토큰 쿠키 | SEC-04 | `ErrorResponseTest`: 첫 GET에 쿠키 발급, 쿠키 값을 헤더로 보내면 통과, 토큰 없음·위조 → 403 `CSRF_INVALID` | 구현·테스트 통과 |
 | T4 | 잘못된 입력·열거값 | Bean Validation, Java `enum` 바인딩 | SEC-05 | 임의 문자열 기분·핑, 11자 닉네임 → 400 | 구현 전 |
 | T5 | SQL Injection | JPA·파라미터 바인딩만, 문자열 연결 쿼리 금지 | SEC-06 | 닉네임·초대 코드에 `' OR 1=1 --` → 400 또는 정상 처리, 데이터 변화 없음 | 구현 전 |
-| T6 | XSS(닉네임·그룹 이름) | JSON만 응답, 프론트 이스케이프, CSP 헤더(API는 Spring, 화면 HTML은 Caddy). HttpOnly라 XSS가 생겨도 세션 쿠키는 못 읽음 | SEC-07 | `<script>` 닉네임 저장 후 응답이 문자열 그대로. CSP 헤더는 `ErrorResponseTest`로 확인 | CSP 적용, 닉네임은 구현 전 |
+| T6 | XSS(닉네임·그룹 이름) | JSON만 응답, 프론트 이스케이프, CSP 헤더(API는 Spring, 화면 HTML은 Caddy). HttpOnly라 XSS가 생겨도 세션 쿠키는 못 읽음 | SEC-07 | `<script>` 닉네임 저장 후 응답이 문자열 그대로. CSP 헤더는 `ErrorResponseTest`로, 화면 CSP는 배포 후 `curl -I`로 확인 | API·화면 CSP 적용([deploy/Caddyfile](deploy/Caddyfile)), 닉네임은 구현 전 |
 | T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일 | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
 | T8 | 성장·완료 수치 조작 | 서버 계산만, 요청 본문의 수치 무시 | SEC-09 | 성장 값을 담아 완료 요청 → 서버 계산값과 같음 | 구현 전 |
 | T9 | 비밀값 유출(공개 레포) | `.env`는 커밋 제외, `.env.example`만. gitleaks를 pre-commit 훅(`.githooks`)과 CI 양쪽에서 실행 | SEC-10 | CI `secrets` 작업, 훅에 가짜 비밀값을 스테이징하면 커밋 거부 | 설정·확인 완료 |
@@ -33,6 +33,7 @@
 | T13 | 검증 안 된 AI 코드·취약한 라이브러리 | PR 템플릿 체크, 버전 잠금(`gradle.lockfile`), OSV-Scanner로 잠금 파일 전체 검사(취약점 있으면 실패, 주 1회 재검사), Dependabot | SEC-14 | CI `dependencies` 작업. 알려진 취약 버전(log4j 2.14.1)을 넣으면 실패하는 것 확인 | 설정·확인 완료 |
 | T14 | 온라인 그룹 괴롭힘 | 차단(핑 안 보임), 서로 다른 2명 신고 시 그룹에서 제외, 신고 사실 비공개 | GRP | 2명 신고 → 구성원에서 빠짐 | 구현 전 |
 | T15 | 동시 참여로 6명·3그룹 제한 우회 | 그룹 행 잠금(`SELECT … FOR UPDATE`) | NFR-08 | 7명 동시 참여 → 6명만 | 구현 전 |
+| T16 | 시연 서버 침입·노출 | 밖에는 80·443만 열고 api·db 포트는 열지 않음, SSH는 키 인증·내 IP만. api는 root가 아닌 사용자로 실행. 서버 비밀값은 서버의 `.env`(권한 600)에만. `Server` 헤더 제거 | NFR | 배포 후 점검표([deploy.md](docs/deploy.md) 5절): 5432·8080 연결 안 됨, HSTS·CSP 헤더 있음 | 설정 작성, 배포 후 확인 |
 
 ## 3. 남은 위험과 대응 방안
 
@@ -55,6 +56,7 @@
 | 2026-11-16 | 프레임워크 지원 기간 점검 | Spring Boot 3.5는 무료 패치 종료, 4.0은 2026-12-31 종료 | 4.1.2로 시작(D-10). 의존성 잠금 파일 생성, Gradle 배포판은 SHA-256 고정 |
 | 2026-11-16 | 공통 보안 설정 테스트 작성 중 | 테스트 도구 `csrf()`가 CSRF 저장소를 바꿔 놓아 쿠키 발급 누락을 가릴 수 있음 | 실제 흐름(GET 쿠키 → 헤더)으로 테스트. 앱 설정은 정상 |
 | 2026-11-17 | 설계 검토: 로그인 없는 구조의 세션 탈취·기기 이전 | 화면(HTML)에 CSP가 없음, Spring은 프록시 뒤라 HSTS를 못 붙임, 토큰 길이 미정, 하위 도메인 쿠키 주입 가능. 기기 이전 코드는 새 공격 표면 | 화면 CSP·HSTS는 Caddy에서, 토큰 256비트, `__Host-` 접두사(T2·T6). 기기 이전은 MVP에서 빼고 서비스화 설계를 D-11에 기록 |
+| 2026-11-17 | 배포 설정 작성(Caddy·Compose) | 프론트가 Google Fonts를 불러오고 서비스 워커가 글꼴을 캐시함. 화면 CSP를 `'self'`로만 두면 글꼴과 서비스 워커 캐시가 막힘 | 글꼴 두 도메인만 `style-src`·`font-src`·`connect-src`에 허용, 스크립트는 자기 출처만(T6). api·db 포트 비공개(T16) |
 | 2026-11-16 | 레포 권한 점검 | 대회 organization 레포라 우리 팀은 write 권한뿐. main 보호 규칙·Dependency graph를 켤 수 없어 GitHub 의존성 검토가 실패 | 의존성 검사를 OSV-Scanner(레포 설정 불필요)로 교체. main 직접 푸시는 각자 PC의 pre-push 훅과 팀 규칙으로 막음(서버에서 강제되지는 않음, 남은 위험) |
 | 2026-11-16 | 첫 커밋 전 gitleaks 전체 검사 | 커밋 대상 0건. 테스트 로그에 Spring 기본 사용자의 임의 비밀번호가 찍힘(로그인 경로는 꺼져 있어 쓸 수 없음) | 아무도 찾지 못하는 `UserDetailsService`로 기본 사용자 생성을 막음. 재검사 0건 |
 | 2026-11-16 | 설계 문서 검토: 공개 서버의 시연 API | `demo` 프로필이면 누구나 서버 날짜 변경 가능 | 시드 시연 계정만 허용, 시연 도구는 시연 계정에만 노출(SEC-13) |

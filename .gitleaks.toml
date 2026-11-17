@@ -5,7 +5,8 @@ useDefault = true
 [[rules]]
 id = "haengunping-env-secret"
 description = "행운핑 .env 비밀값이 코드에 들어감"
-regex = '''(?i)(DATA_GO_KR_KEY|VAPID_PRIVATE_KEY|DB_PASSWORD)\s*[:=]\s*['"]?[A-Za-z0-9+/=_\-%]{8,}'''
+# 값 자리에 [ \t]만 쓴다. \s는 줄바꿈을 넘어 빈 값 다음 줄(VAPID_SUBJECT=...)을 값으로 읽는다(2026-11-17 오탐).
+regex = '''(?i)(DATA_GO_KR_KEY|VAPID_PRIVATE_KEY|DB_PASSWORD)[ \t]*[:=][ \t]*['"]?[A-Za-z0-9+/=_\-%]{8,}'''
 keywords = ["data_go_kr_key", "vapid_private_key", "db_password"]
 
 [allowlist]
