@@ -257,6 +257,8 @@ erDiagram
 | kind | varchar(15) | check in (`CHANNEL`,`SERVICE`,`LOCAL_CENTER`,`CENTER_FINDER`) | |
 | name | varchar(60) | not null | |
 | summary | varchar(120) | null 허용 | 카드에 함께 쓰는 말 |
+| target | varchar(120) | null 허용 | 대상 설명(상세 화면) |
+| note | varchar(200) | null 허용 | 함께 보여줄 주의 문구(예: 바우처 의뢰서 안내) |
 | phone | varchar(20) | null 허용 | |
 | url | text | null 허용 | |
 | address | varchar(120) | null 허용 | 센터 |
@@ -269,6 +271,7 @@ erDiagram
 | updated_at | timestamptz | not null | |
 
 - 24시간 채널·학교 상담센터·서울 25개 구 센터·센터 찾기는 시드로 넣고, `source_service_id`가 있는 행만 매일 동기화로 갱신한다.
+- 시드는 마이그레이션 `V202611171101__seed_help_items.sql`. id·문구는 프론트 목업과 같다. 서울 구 센터 25행은 동기화로 덮어쓰지 않도록 `source_service_id`를 비운다.
 
 ### `service_sync_log`
 
