@@ -17,6 +17,8 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
+import org.springframework.beans.factory.ObjectProvider;
+
 /**
  * 공통 보안 설정(architecture 보안 표, SEC-01·04·07·12).
  *
@@ -36,8 +38,8 @@ public class SecurityConfig {
     SecurityFilterChain apiSecurity(
             HttpSecurity http,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver,
-            @Value("${haengunping.cookie-secure:true}") boolean cookieSecure) throws Exception {
-
+            @Value("${haengunping.cookie-secure:true}") boolean cookieSecure,
+            ObjectProvider<ApiSecurityCustomizer> customizers) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookieCustomizer(cookie -> cookie.path("/").secure(cookieSecure).sameSite("Lax"));
 
@@ -58,12 +60,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/health").permitAll()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/accounts").permitAll()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/csrf").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/help/items").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
+
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint((request, response, e) -> resolver.resolveException(request, response, null, e))
                         .accessDeniedHandler((request, response, e) -> resolver.resolveException(request, response, null, e)));
+        // Account 모듈(해당이름파일참조)에서 등록한 세션 인증 필터 연결
+        for (ApiSecurityCustomizer customizer : customizers) {
+            customizer.customize(http);
+        }
 
         return http.build();
     }
