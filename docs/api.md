@@ -10,7 +10,7 @@
 | --- | --- |
 | 기본 경로 | `/api/v1` |
 | 형식 | 요청·응답 모두 JSON(UTF-8), 필드 이름은 camelCase |
-| 인증 | 쿠키 `hp_session`(HttpOnly, Secure, SameSite=Lax, 만료 400일). 🔒 표시가 있는 엔드포인트는 필수 |
+| 인증 | 쿠키 `__Host-hp_session`(HttpOnly, Secure, SameSite=Lax, 만료 400일. 로컬 http 개발에서는 `hp_session`). 브라우저가 자동으로 보내므로 프론트는 이름을 다루지 않는다. 🔒 표시가 있는 엔드포인트는 필수 |
 | CSRF | 서버가 `XSRF-TOKEN` 쿠키를 주고, 상태 변경 요청(POST·PUT·PATCH·DELETE)은 같은 값을 `X-XSRF-TOKEN` 헤더로 보낸다(Spring Security `CookieCsrfTokenRepository`) |
 | 날짜 | 날짜는 KST 기준 `YYYY-MM-DD`, 시각은 ISO-8601 UTC(`2026-11-16T09:00:00Z`) |
 | 열거값 | 대문자 영문. 정의 밖 값은 400 |
@@ -55,7 +55,7 @@
 ```json
 // 요청
 { "nickname": "은우" }
-// 201 응답 + Set-Cookie: hp_session=...
+// 201 응답 + Set-Cookie: __Host-hp_session=...
 { "nickname": "은우", "adultConfirmed": false, "sensitiveConsent": false }
 ```
 

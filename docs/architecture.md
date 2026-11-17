@@ -176,14 +176,14 @@ MVP는 서버 1대를 가정해 단순하게 만들었다. 사용자가 늘면 �
 
 | 층 | 무엇을 | PRD |
 | --- | --- | --- |
-| 전송 | HTTPS 전용, HSTS | — |
-| 인증 | 세션 토큰 쿠키(HttpOnly·Secure·SameSite=Lax), 서버는 SHA-256 해시만 저장, 커스텀 `OncePerRequestFilter` | ACC-01, 02 |
+| 전송 | HTTPS 전용. HSTS는 프록시(Caddy)가 붙임(Spring은 프록시 뒤라 HTTPS 여부를 모름) | — |
+| 인증 | 세션 토큰 쿠키 `__Host-hp_session`(HttpOnly·Secure·SameSite=Lax, 로컬은 `hp_session`). 토큰은 `SecureRandom` 256비트, 서버는 SHA-256 해시만 저장, 커스텀 `OncePerRequestFilter`. 기기 이전은 MVP에서 뺌([D-11](decisions.md)) | ACC-01, 02 |
 | CSRF | Spring Security `CookieCsrfTokenRepository.withHttpOnlyFalse()` + `CsrfTokenRequestAttributeHandler`(SPA 방식, 쿠키 값을 그대로 헤더로 받음). 기본값은 토큰을 늦게 만들어 첫 `POST /accounts` 전에 쿠키가 없으므로, 응답마다 토큰을 읽어 `XSRF-TOKEN` 쿠키를 심는 필터를 둔다 | SEC-04 |
 | 에러 응답 | 시큐리티 단계 거절도 `{code, message}`로: `AuthenticationEntryPoint` → 401 `UNAUTHENTICATED`, `AccessDeniedHandler` → 403 `CSRF_INVALID`. 기본값(빈 본문)으로 두지 않음 | — |
 | 인가 | 서비스 계층에서 `GroupQuery.findActiveMember`로 검사, 실패 시 404. 기분·점검은 `userId` 조건으로만 조회 | SEC-02, 03 |
 | 입력 | Bean Validation(`@Valid`), 열거값은 Java `enum`으로 받음 | SEC-05 |
 | DB | Spring Data JPA, 파라미터 바인딩만 | SEC-06 |
-| 출력 | JSON만 응답, 프론트 이스케이프, CSP 헤더(프록시에서) | SEC-07 |
+| 출력 | JSON만 응답, 프론트 이스케이프(`dangerouslySetInnerHTML` 쓰지 않음). CSP: API 응답은 Spring이 `default-src 'none'`, 화면(HTML)은 Caddy가 자기 출처 스크립트만 허용 | SEC-07 |
 | 요청 횟수 | Bucket4j 메모리 버킷(서버 1대): 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일 | SEC-08 |
 | 비밀값 | `.env`, gitleaks | SEC-10 |
 | 로그 | 요청 로그에서 쿠키·`answers`·`mood` 값 가림(로그 마스킹 필터) | SEC-11 |
