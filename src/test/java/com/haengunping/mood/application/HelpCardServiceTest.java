@@ -42,8 +42,8 @@ class HelpCardServiceTest extends IntegrationTest {
         tx.executeWithoutResult(s -> {
             moods.deleteByUserId(me);
             dismissals.deleteById(me);
-            deleteUser(me);
         });
+        deleteUser(me); // JPA 삭제가 커밋으로 반영된 뒤에 지워야 외래 키에 걸리지 않는다
     }
 
     @Test
