@@ -47,6 +47,17 @@ public class MissionTopic {
     protected MissionTopic() {
     }
 
+    /** 테스트용. 운영 데이터는 시드로만 만든다. */
+    public MissionTopic(short id, Category category, SizeType sizeType, short[] countSizes, List<Mood> priorityMoods) {
+        this.id = id;
+        this.category = category;
+        this.outdoorText = "밖 " + id;
+        this.indoorText = "안 " + id;
+        this.sizeType = sizeType;
+        this.countSizes = countSizes;
+        this.priorityMoods = priorityMoods.toArray(Mood[]::new);
+    }
+
     public short id() {
         return id;
     }
