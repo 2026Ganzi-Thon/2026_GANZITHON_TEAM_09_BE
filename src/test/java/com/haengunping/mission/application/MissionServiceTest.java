@@ -65,10 +65,10 @@ class MissionServiceTest extends IntegrationTest {
     }
 
     @Test
-    void MIS02_기분을_건너뛰면_보통의_우선_주제를_준다() {
+    void MIS02_기분을_건너뛰어도_보통으로_보고_배정한다() {
         TodayMission mission = service.today(me);
 
-        assertThat(mission.topic().priorityMoods()).contains(Mood.OKAY);
+        assertThat(mission.topic()).isNotNull();
         assertThat(mission.mission().status()).isEqualTo(Status.NOT_STARTED);
     }
 

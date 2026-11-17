@@ -13,6 +13,7 @@ import com.haengunping.mood.Mood;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -56,6 +57,17 @@ class MissionRulesTest {
     void MIS02_오늘_기분의_우선_주제에서_고른다() {
         MissionTopic picked = TopicPicker.pick(List.of(TIME, COUNT, SONG), Mood.CALM, Set.of(), new Random(1));
         assertThat(picked).isSameAs(COUNT);
+    }
+
+    @Test
+    void MIS02_보통이에요는_우선_주제_없이_전체에서_고른다() {
+        MissionTopic okay = topic(4, SizeType.TIME, null, Mood.OKAY);
+        Set<MissionTopic> picked = new HashSet<>();
+        Random random = new Random(1);
+        for (int i = 0; i < 100; i++) {
+            picked.add(TopicPicker.pick(List.of(TIME, COUNT, SONG, okay), Mood.OKAY, Set.of(), random));
+        }
+        assertThat(picked).containsExactlyInAnyOrder(TIME, COUNT, SONG, okay);
     }
 
     @Test
