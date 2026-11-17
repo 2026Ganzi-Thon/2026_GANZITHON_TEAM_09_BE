@@ -32,3 +32,6 @@ server:
 
 haengunping:
   cookie-secure: ${COOKIE_SECURE:true}
+  # 세션 쿠키 이름(D-11). __Host- 접두사는 브라우저가 Secure·경로 /·도메인 없음을 강제한다.
+  # account 모듈의 세션 필터(담당 A)가 이 값을 읽는다.
+  session-cookie-name: __Host-hp_session
