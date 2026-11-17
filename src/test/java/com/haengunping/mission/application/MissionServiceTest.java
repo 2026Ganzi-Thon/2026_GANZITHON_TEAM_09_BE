@@ -11,7 +11,6 @@ import com.haengunping.mood.Mood;
 import com.haengunping.support.IntegrationTest;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,11 +37,12 @@ class MissionServiceTest extends IntegrationTest {
     @Autowired
     Clock clock;
 
-    private final long me = ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE);
+    private long me;
     private LocalDate today;
 
     @BeforeEach
     void setUp() {
+        me = createUser();
         today = LocalDate.now(clock);
         topic(OKAY_TOPIC, "OKAY");
         topic((short) 912, "GOOD");
@@ -52,6 +52,7 @@ class MissionServiceTest extends IntegrationTest {
     @AfterEach
     void cleanUp() {
         jdbc.update("DELETE FROM daily_missions WHERE user_id = ?", me);
+        deleteUser(me);
         jdbc.update("DELETE FROM mission_topics WHERE id BETWEEN 910 AND 919");
     }
 
