@@ -15,4 +15,8 @@ public interface HelpCardDismissalRepository extends JpaRepository<HelpCardDismi
             ON CONFLICT (user_id) DO UPDATE SET dismissed_at = EXCLUDED.dismissed_at
             """)
     void upsert(long userId, Instant dismissedAt);
+
+    @Modifying
+    @Query("DELETE FROM HelpCardDismissal d WHERE d.userId = :userId")
+    int deleteByUserId(long userId);
 }
