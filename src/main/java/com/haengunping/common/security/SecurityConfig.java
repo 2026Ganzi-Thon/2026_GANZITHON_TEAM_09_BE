@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/health").permitAll()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/accounts").permitAll()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/help/items").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling

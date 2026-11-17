@@ -2,6 +2,8 @@
 # 사파리는 http에서 Secure 쿠키를 저장하지 않으므로 로컬에서만 끈다.
 haengunping:
   cookie-secure: ${COOKIE_SECURE:false}
+  # __Host- 접두사 쿠키는 Secure가 필수라 http 로컬에서는 저장되지 않는다.
+  session-cookie-name: hp_session
 
 logging:
   level:
