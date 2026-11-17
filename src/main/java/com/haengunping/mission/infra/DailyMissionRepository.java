@@ -3,6 +3,7 @@ package com.haengunping.mission.infra;
 import com.haengunping.mission.domain.DailyMission;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,6 +33,9 @@ public interface DailyMissionRepository extends JpaRepository<DailyMission, Dail
             WHERE user_id = :userId AND date = :date AND completed_at IS NULL
             """)
     int completeIfNotYet(long userId, LocalDate date, Instant now);
+
+    @Query("SELECT m.userId FROM DailyMission m WHERE m.date = :date AND m.completedAt IS NOT NULL AND m.userId IN :userIds")
+    List<Long> findCompletedUserIds(Collection<Long> userIds, LocalDate date);
 
     @Query("""
             SELECT m FROM DailyMission m

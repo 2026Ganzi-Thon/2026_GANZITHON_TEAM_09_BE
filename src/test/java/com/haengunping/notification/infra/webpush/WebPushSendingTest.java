@@ -105,7 +105,7 @@ class WebPushSendingTest extends IntegrationTest {
 
         Map<String, String> request = received.getFirst();
         assertThat(request.get("encoding")).isEqualTo("aes128gcm");
-        assertThat(request.get("ttl")).isEqualTo(String.valueOf(WebPushClient.TTL.toSeconds()));
+        assertThat(request.get("ttl")).isEqualTo("21600"); // 점검 알림 6시간
 
         String auth = request.get("authorization");
         assertThat(auth).startsWith("vapid t=").contains(", k=" + B64.encodeToString(WebPushCrypto.encode((ECPublicKey) vapidKeys.getPublic())));
