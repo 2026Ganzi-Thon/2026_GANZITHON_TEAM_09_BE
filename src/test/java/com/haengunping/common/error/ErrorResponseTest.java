@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.haengunping.common.security.SecurityConfig;
 import com.haengunping.common.web.ApiPaths;
+import com.haengunping.common.web.HealthController;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -35,7 +36,8 @@ import org.springframework.web.bind.annotation.RestController;
  * 예상 밖 요청도 {@code {code, message}}로 답하는지(SEC-12), 시큐리티 단계 거절도 같은 모양인지(SEC-01·04) 확인한다.
  * DB·Docker 없이 돈다.
  */
-@WebMvcTest
+// 컨트롤러를 지정하지 않으면 모든 모듈의 컨트롤러가 올라와 그 서비스 빈까지 요구한다.
+@WebMvcTest(controllers = HealthController.class)
 @Import({SecurityConfig.class, ErrorResponseTest.ProbeController.class})
 class ErrorResponseTest {
 

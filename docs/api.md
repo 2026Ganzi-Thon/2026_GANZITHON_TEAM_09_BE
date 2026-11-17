@@ -354,50 +354,74 @@ IP당 시간당 20회. 201, 그룹 상세 응답. 404 / 410 / 409(`GROUP_FULL`, 
 
 ### `GET /help/items` — 도움받을 곳 전체 목록 (HELP-01~05, 07)
 
-인증 불필요. `ETag` / `If-None-Match` 지원(304).
+인증 불필요. `ETag` / `If-None-Match` 지원(304). `Cache-Control: no-cache`(캐시는 하되 쓸 때마다 ETag로 확인).
 
 ```json
 {
-  "version": "2026-11-16",
-  "syncedAt": "2026-11-15T19:00:00Z",
+  "version": "2026-11-17",
+  "syncedAt": null,
   "items": [
     {
-      "id": "crisis-109",
+      "id": "line-109",
       "section": "CRISIS_24H",
-      "name": "자살예방상담전화",
+      "kind": "CHANNEL",
+      "name": "자살예방상담전화 109",
+      "summary": "전화 · 24시간",
+      "target": "누구나",
+      "note": null,
       "phone": "109",
       "url": null,
-      "summary": "24시간",
-      "rules": {}
+      "address": null,
+      "applyMethod": "109로 전화",
+      "deadline": null,
+      "rules": {},
+      "sourceServiceId": null
     },
     {
-      "id": "seoul-youth-mind",
+      "id": "voucher",
       "section": "COUNSELING",
-      "name": "서울 청년 마음건강 지원 사업",
+      "kind": "SERVICE",
+      "name": "정신건강 심리상담 바우처",
+      "summary": "상담 8회 · 의뢰서 필요(센터·학교 상담센터에서 발급)",
+      "target": "우울·불안 등 정서적 어려움이 있는 만 19세 이상 (나이·소득 기준 없음)",
+      "note": "정신건강복지센터나 학교 상담센터에서 의뢰서를 받아야 해요. 앱의 점검 결과는 증빙이 되지 않아요.",
       "phone": null,
-      "url": "https://...",
-      "summary": "모집 달 1·3·7·9월",
-      "applyMethod": "청년몽땅정보통 온라인",
-      "rules": { "sido": ["서울특별시"], "minAge": 19, "maxAge": 39 },
-      "sourceServiceId": "611000019617"
+      "url": "https://www.gov.kr/portal/rcvfvrSvc/dtlEx/135200005045",
+      "address": null,
+      "applyMethod": "의뢰서 등 증빙을 받은 뒤 복지로 온라인 신청",
+      "deadline": null,
+      "rules": { "minAge": 19 },
+      "sourceServiceId": "135200005045"
     },
     {
-      "id": "center-seoul-mapo",
+      "id": "center-마포구",
       "section": "COUNSELING",
+      "kind": "LOCAL_CENTER",
       "name": "마포구 정신건강복지센터",
-      "phone": "02-...",
-      "address": "서울특별시 마포구 ...",
+      "summary": "마포구 주민 누구나 · 무료 상담",
+      "target": "마포구 주민 누구나",
+      "note": null,
+      "phone": null,
+      "url": null,
+      "address": null,
+      "applyMethod": "센터에 전화 또는 방문 (연락처는 센터 찾기에서 확인)",
+      "deadline": null,
       "rules": { "sido": ["서울특별시"], "sigungu": ["마포구"] },
-      "kind": "LOCAL_CENTER"
+      "sourceServiceId": null
     }
   ]
 }
 ```
 
-- `section`: `CRISIS_24H`, `COUNSELING`, `DROP_IN`.
+- 모든 키를 항상 보낸다. 값이 없으면 `null`이다.
+- 순서: 구역(`CRISIS_24H` → `COUNSELING` → `DROP_IN`) 다음 구역 안 기본 순서. 24시간 채널이 항상 맨 앞이다(HELP-07).
+- `kind`: `CHANNEL`(24시간 채널), `SERVICE`(사업), `LOCAL_CENTER`(서울 구별 센터), `CENTER_FINDER`(`mental-center`, 가까운 센터 찾기 안내).
 - `rules`: 비어 있으면 항상 보인다. 키: `minAge`, `maxAge`, `sido`, `sigungu`, `jobs`(`STUDENT`, `WORKER`, `JOB_SEEKER`, `OTHER`).
 - 기기는 **입력하지 않은 정보에 걸린 규칙은 통과**로 처리한다(HELP-03).
-- `LOCAL_CENTER` 항목은 사용자의 시·군·구와 맞을 때만 보이고, 맞는 항목이 없으면 `center-finder`(가까운 센터 찾기 안내) 항목을 보인다.
+- `LOCAL_CENTER` 항목은 사용자의 시·군·구와 맞을 때만 보이고, 서울에서 구를 고른 사람에게는 `CENTER_FINDER`를 숨긴다.
+- `id`는 프론트의 순서 규칙이 쓰므로 바꾸지 않는다: `line-109`, `line-15770199`, `line-1388`, `line-120`, `seoul-youth-mind`, `mental-center`, `voucher`, `school-counsel`, `worker-health`, `eap`, `job-mind`, `mind-store`, `center-<구 이름>`.
+- `version`: 목록이 마지막으로 바뀐 날(KST). `syncedAt`: 공공서비스 API 동기화가 마지막으로 성공한 시각. 동기화 전에는 `null`.
+- 서울 25개 구 센터의 `phone`·`address`는 검수된 데이터를 넣기 전까지 `null`이다.
 
 ### 🔒 `GET /help/signals` — 순서 신호 (HELP-06)
 
