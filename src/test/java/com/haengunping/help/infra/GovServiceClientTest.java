@@ -3,6 +3,7 @@ package com.haengunping.help.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -19,7 +20,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
 
-/** 외부 API는 가짜 서버로만 확인한다. 키는 헤더로만 나가고, 실패 사유에 키·응답 원문이 없어야 한다(SEC-11). */
+/** 외부 API는 가짜 서버로만 확인한다. 키는 URL 쿼리(serviceKey)로 나가므로, 실패 사유·원인 예외 어디에도 키·응답 원문이 없어야 한다(SEC-11). */
 class GovServiceClientTest {
 
     private static final String KEY = "SECRET-KEY-VALUE";
@@ -101,6 +102,27 @@ class GovServiceClientTest {
                 .isInstanceOf(SyncSourceException.class)
                 .hasMessage("HTTP 401")
                 .satisfies(e -> assertThat(e.getMessage()).doesNotContain(KEY));
+        server.verify();
+    }
+
+    /**
+     * 통신 오류 때 RestClient가 만드는 예외 메시지에는 요청 URL이 그대로 들어간다("I/O error on GET request for ...").
+     * URL에 키가 있으므로, 그 예외를 원인으로 달거나 메시지를 옮기면 로그·service_sync_log로 키가 샌다.
+     */
+    @Test
+    void SEC11_통신_오류의_예외와_원인_어디에도_키가_없다() {
+        server.expect(ExpectedCount.times(2), requestTo(org.hamcrest.Matchers.containsString("/serviceList")))
+                .andRespond(withException(new java.io.IOException("connection reset")));
+
+        assertThatThrownBy(() -> client(KEY, 2).fetch("135200005045"))
+                .isInstanceOf(SyncSourceException.class)
+                .hasMessage("통신 실패")
+                .satisfies(e -> {
+                    for (Throwable t = e; t != null; t = t.getCause()) {
+                        assertThat(String.valueOf(t.getMessage())).as(t.getClass().getName()).doesNotContain(KEY);
+                    }
+                    assertThat(e.getCause()).isNull();
+                });
         server.verify();
     }
 
