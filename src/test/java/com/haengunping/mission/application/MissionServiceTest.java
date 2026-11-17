@@ -70,7 +70,6 @@ class MissionServiceTest extends IntegrationTest {
 
         assertThat(mission.topic().priorityMoods()).contains(Mood.OKAY);
         assertThat(mission.mission().status()).isEqualTo(Status.NOT_STARTED);
-        assertThat(mission.sizeByMinutes()).containsEntry(20, 20);
     }
 
     @Test

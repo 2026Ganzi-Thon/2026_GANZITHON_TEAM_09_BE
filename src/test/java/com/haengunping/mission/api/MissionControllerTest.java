@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
  * api.md 5절 응답 모양과 시작을 실제 DB로 확인한다. 배정·크기 규칙은 MissionServiceTest가 맡는다.
- * 시드가 없어도 돌도록 920번대 테스트 주제 하나만 넣는다(MissionServiceTest는 910번대).
+ * 920번대 테스트 주제 하나를 넣고 오늘 미션으로 미리 배정해 둔다. 시드 주제가 있어도 응답 값이 정해진다(MissionServiceTest는 910번대).
  */
 class MissionControllerTest extends IntegrationTest {
 
@@ -45,6 +45,7 @@ class MissionControllerTest extends IntegrationTest {
                 INSERT INTO mission_topics (id, category, outdoor_text, indoor_text, size_type, priority_moods)
                 VALUES (?, 'NATURE_SUN', '햇빛 받으며 걷기', '창가에서 햇빛 쬐기', 'TIME', '{OKAY}'::varchar[])
                 """, TOPIC);
+        jdbc.update("INSERT INTO daily_missions (user_id, date, topic_id) VALUES (?, ?, ?)", me, LocalDate.now(clock), TOPIC);
     }
 
     @AfterEach
@@ -55,7 +56,7 @@ class MissionControllerTest extends IntegrationTest {
     }
 
     @Test
-    void MIS02_처음_조회하면_배정하고_api_md_모양으로_준다() throws Exception {
+    void MIS02_오늘_미션을_api_md_모양으로_준다() throws Exception {
         mvc.perform(get(TODAY).with(as(me)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.date").value(LocalDate.now(clock).toString()))
