@@ -74,6 +74,10 @@ public class PushSubscription {
         return value != null && !value.isBlank() && value.length() <= max;
     }
 
+    public Long id() {
+        return id;
+    }
+
     public long userId() {
         return userId;
     }
