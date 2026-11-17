@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.http.HttpHeaders;
 
 /**
  * 모든 예외를 {@code {code, message}}로 바꾸는 곳(SEC-12).
@@ -107,5 +108,20 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> respond(ErrorCode code, ErrorResponse body) {
         return ResponseEntity.status(code.status()).body(body);
+    }
+    @ExceptionHandler(RateLimitedException.class)
+    ResponseEntity<ErrorResponse> handleRateLimited(
+            RateLimitedException e) {
+
+        return ResponseEntity
+                .status(ErrorCode.RATE_LIMITED.status())
+                .header(
+                        HttpHeaders.RETRY_AFTER,
+                        String.valueOf(e.retryAfterSeconds())
+                )
+                .body(ErrorResponse.of(
+                        ErrorCode.RATE_LIMITED,
+                        e.getMessage()
+                ));
     }
 }

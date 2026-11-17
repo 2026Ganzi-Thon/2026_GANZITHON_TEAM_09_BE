@@ -29,6 +29,7 @@ server:
     include-binding-errors: never
     whitelabel:
       enabled: false
+  forward-headers-strategy: native
 
 haengunping:
   cookie-secure: ${COOKIE_SECURE:true}
