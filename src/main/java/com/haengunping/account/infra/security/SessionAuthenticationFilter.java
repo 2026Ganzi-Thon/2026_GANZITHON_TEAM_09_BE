@@ -13,11 +13,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
     private final SessionService sessions;
-    public SessionAuthenticationFilter(SessionService sessions){this.sessions=sessions;}
+    private final String cookieName;
+    public SessionAuthenticationFilter(SessionService sessions, String cookieName){
+        this.sessions=sessions;
+        this.cookieName = cookieName;}
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws IOException,ServletException {
         Cookie[] cookies=request.getCookies();
         if(cookies!=null)for(Cookie cookie:cookies){
-            if("hp_session".equals(cookie.getName())){
+            if (cookieName.equals(cookie.getName())) {
                 sessions.authenticate(cookie.getValue()).ifPresent(userId->{
                     var auth=new UsernamePasswordAuthenticationToken(userId,null,List.of());
                     SecurityContextHolder.getContext().setAuthentication(auth);

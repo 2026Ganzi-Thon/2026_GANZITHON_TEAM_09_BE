@@ -77,8 +77,14 @@ public class AccountService implements AccountQuery {
     @Override @Transactional(readOnly=true) public boolean hasSensitiveConsent(long id){return users.findById(id).filter(User::isActive).map(User::hasSensitiveConsent).orElse(false);}
     @Override @Transactional(readOnly=true) public boolean isAdultConfirmed(long id){return users.findById(id).filter(User::isActive).map(User::isAdultConfirmed).orElse(false);}
     @Override @Transactional(readOnly=true) public boolean isActive(long id){return users.findById(id).filter(User::isActive).isPresent();}
-    @Override @Transactional(readOnly=true) public String nicknameOf(long id){return get(id).getNickname();}
-    @Override @Transactional(readOnly=true) public java.util.Optional<java.time.Instant> lastSeenAt(long id){return users.findById(id).filter(User::isActive).map(User::getLastSeenAt);}
+    @Override @Transactional(readOnly=true) public String nicknameOf(long id) {
+        return users.findById(id)
+                .map(user -> user.isActive()
+                        ? user.getNickname()
+                        : "탈퇴한 사용자")
+                .orElseThrow(() ->
+                        new ApiException(ErrorCode.NOT_FOUND));
+    }    @Override @Transactional(readOnly=true) public java.util.Optional<java.time.Instant> lastSeenAt(long id){return users.findById(id).filter(User::isActive).map(User::getLastSeenAt);}
     @Override @Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY) public void lockForGroupChange(long id){locked(id);}
     @Override
     public void requireSensitiveConsent(long id) {
