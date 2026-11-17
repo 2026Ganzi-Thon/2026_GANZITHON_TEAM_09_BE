@@ -277,6 +277,8 @@ IP당 시간당 20회. 201, 그룹 상세 응답. 404 / 410 / 409(`GROUP_FULL`, 
 
 200, `GET /missions/today`와 같은 응답(`status: STARTED`, `startedAt`·`minutes`·`place`·`size` 채움). 다시 부르면 값과 `startedAt`을 새로 쓴다.
 
+`minutes`가 5·10·20이 아니거나 `size`가 1~100 밖이면 400 `VALIDATION_FAILED`.
+
 ### 🔒 `POST /missions/today/complete` — 다 했어요 (MIS-07, 08)
 
 요청 본문 없음.
