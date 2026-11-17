@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,15 @@ public class MissionController {
     @PostMapping("/start")
     public TodayMissionResponse start(@Valid @RequestBody StartRequest request) {
         return TodayMissionResponse.from(service.start(CurrentUser.id(), request.minutes(), request.place(), request.size()));
+    }
+
+    @PostMapping("/complete")
+    public CompleteResponse complete() {
+        return new CompleteResponse(service.complete(CurrentUser.id()), List.of());
+    }
+
+    /** shortcut: groups는 빈 배열, A groups·CharacterQuery가 들어오면 #32에서 그룹별 완료 수·단계를 채운다. */
+    public record CompleteResponse(Instant completedAt, List<Object> groups) {
     }
 
     /** 값의 범위(5·10·20분, 크기)는 도메인이 검사해 400을 준다. */
