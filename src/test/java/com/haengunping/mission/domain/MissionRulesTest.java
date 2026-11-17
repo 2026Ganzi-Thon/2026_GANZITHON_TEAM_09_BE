@@ -108,13 +108,18 @@ class MissionRulesTest {
     }
 
     @Test
-    void MIS05_시간은_5_10_20분만_크기는_1_이상만() {
+    void MIS05_시간은_5_10_20분만_크기는_1에서_100까지() {
         DailyMission mission = new DailyMission(1, LocalDate.of(2026, 11, 16), (short) 5);
         assertThatThrownBy(() -> mission.start(15, Place.INDOOR, 5, Instant.EPOCH))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
         assertThatThrownBy(() -> mission.start(10, Place.INDOOR, 0, Instant.EPOCH))
                 .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+        assertThatThrownBy(() -> mission.start(10, Place.INDOOR, 101, Instant.EPOCH))
+                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code()).isEqualTo(ErrorCode.VALIDATION_FAILED));
         assertThat(mission.status()).isEqualTo(Status.NOT_STARTED);
+
+        mission.start(10, Place.INDOOR, 100, Instant.EPOCH);
+        assertThat(mission.size()).isEqualTo(100);
     }
 
     private static MissionTopic topic(int id, SizeType type, short[] counts, Mood... moods) {

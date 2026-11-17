@@ -91,6 +91,14 @@ class MissionControllerTest extends IntegrationTest {
     }
 
     @Test
+    void MIS05_크기가_short를_넘어도_500이_아니라_400() throws Exception {
+        mvc.perform(json(post(TODAY + "/start"), """
+                        {"minutes":10,"place":"INDOOR","size":40000}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
     void MIS06_허용되지_않는_시간이면_400() throws Exception {
         mvc.perform(json(post(TODAY + "/start"), """
                         {"minutes":7,"place":"INDOOR","size":7}"""))

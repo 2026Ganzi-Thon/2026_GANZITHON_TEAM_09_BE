@@ -55,12 +55,15 @@ public class DailyMission {
         this.topicId = topicId;
     }
 
+    /** 사용자가 크기를 바꿔도(MIS-05) 넘지 못하는 값. smallint 넘침으로 500이 나지 않게 도메인에서 400으로 막는다. */
+    public static final int MAX_SIZE = 100;
+
     /** 시작(MIS-05·06). 다시 부르면 값과 시작 시각을 새로 쓴다. 완료한 뒤에는 바꿀 수 없다. */
     public void start(int minutes, Place place, int size, Instant now) {
         if (completedAt != null) {
             throw new ApiException(ErrorCode.ALREADY_COMPLETED);
         }
-        if (!MissionSize.MINUTES.contains(minutes) || size < 1) {
+        if (!MissionSize.MINUTES.contains(minutes) || size < 1 || size > MAX_SIZE) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED);
         }
         this.minutes = (short) minutes;
