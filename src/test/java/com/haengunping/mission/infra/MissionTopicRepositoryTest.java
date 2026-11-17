@@ -8,6 +8,7 @@ import com.haengunping.mission.domain.MissionTopic.Category;
 import com.haengunping.mission.domain.MissionTopic.SizeType;
 import com.haengunping.mood.Mood;
 import com.haengunping.support.IntegrationTest;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +63,30 @@ class MissionTopicRepositoryTest extends IntegrationTest {
     void MIS01_횟수가_3개가_아니면_DB가_거부한다() {
         assertThatThrownBy(() -> insert(COUNT_ID, "PLEASURE", "COUNT", "{1,2}", "{LONELY}"))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void MIS01_시드_주제_20개를_모두_엔티티로_읽는다() {
+        List<MissionTopic> seed = repository.findAll().stream().filter(t -> t.id() <= 20).toList();
+
+        assertThat(seed).hasSize(20);
+        assertThat(seed).allSatisfy(t -> {
+            assertThat(t.outdoorText()).isNotBlank();
+            assertThat(t.indoorText()).isNotBlank();
+            assertThat(t.priorityMoods()).isNotEmpty();
+            assertThat(t.countSizes() != null).isEqualTo(t.sizeType() == SizeType.COUNT);
+        });
+        assertThat(seed).extracting(MissionTopic::category).containsAll(List.of(Category.values()));
+    }
+
+    @Test
+    void MIS02_어떤_기분이든_최근_3일을_빼도_우선_주제가_남는다() {
+        List<MissionTopic> seed = repository.findAll().stream().filter(t -> t.id() <= 20).toList();
+
+        for (Mood mood : Mood.values()) {
+            long n = seed.stream().filter(t -> t.priorityMoods().contains(mood)).count();
+            assertThat(n).as(mood.name()).isGreaterThan(3);
+        }
     }
 
     private void insert(short id, String category, String sizeType, String countSizes, String moods) {
