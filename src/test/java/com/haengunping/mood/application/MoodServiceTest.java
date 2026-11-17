@@ -11,13 +11,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** 실제 PostgreSQL로 저장·조회·MoodQuery를 확인한다. 사용자마다 무작위 id를 써서 다른 테스트와 섞이지 않게 한다. */
+/** 실제 PostgreSQL로 저장·조회·MoodQuery를 확인한다. 테스트마다 사용자를 새로 만들어 다른 테스트와 섞이지 않게 한다. */
 class MoodServiceTest extends IntegrationTest {
 
     // 2026-11-16(월) ~ 11-22(일)
@@ -32,14 +32,22 @@ class MoodServiceTest extends IntegrationTest {
     @Autowired
     TransactionTemplate tx;
 
-    private final long me = ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE);
-    private final long other = me - 1;
+    private long me;
+    private long other;
+
+    @BeforeEach
+    void createUsers() {
+        me = createUser();
+        other = createUser();
+    }
 
     @AfterEach
     void cleanUp() {
         tx.executeWithoutResult(s -> {
             repository.deleteByUserId(me);
             repository.deleteByUserId(other);
+            deleteUser(me);
+            deleteUser(other);
         });
     }
 
