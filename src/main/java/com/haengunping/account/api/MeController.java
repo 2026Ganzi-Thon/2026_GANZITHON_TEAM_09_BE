@@ -17,7 +17,7 @@ public class MeController {
     private final SessionCookieFactory cookies;
     private final Clock clock;
     public MeController(AccountService accounts,SessionCookieFactory cookies,Clock clock){this.accounts=accounts;this.cookies=cookies;this.clock=clock;}
-    private MeResponse response(User u){return new MeResponse(u.getNickname(),u.isAdultConfirmed(),u.hasSensitiveConsent(),u.getCreatedAt(),LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul"))));}
+    private MeResponse response(User u){return new MeResponse(u.getNickname(),u.isAdultConfirmed(),u.hasSensitiveConsent(),u.getCreatedAt(),LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul"))),u.isDemo());}
     @GetMapping public MeResponse me(){return response(accounts.get(CurrentUser.id()));}
     @PatchMapping public MeResponse rename(@RequestBody @Valid UpdateNicknameRequest req){return response(accounts.rename(CurrentUser.id(),req.nickname()));}
     @PutMapping("/consents/sensitive") public ResponseEntity<Void> consent(@RequestBody @Valid SensitiveConsentRequest req){accounts.consent(CurrentUser.id(),req.agreed());return ResponseEntity.noContent().build();}

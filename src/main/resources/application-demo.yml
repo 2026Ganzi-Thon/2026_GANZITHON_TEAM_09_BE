@@ -1,5 +1,0 @@
-# 시연 서버 전용. 이 프로필에서만 시연 시계 API(PUT /demo/clock)가 켜진다.
-# 그래도 시드 시연 계정(users.is_demo = true)만 부를 수 있다(SEC-13). 구현은 demo 모듈(담당 C).
-haengunping:
-  demo:
-    enabled: true

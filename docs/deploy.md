@@ -1,22 +1,24 @@
-# 시연 서버 배포
+# 서버 배포
 
 해커톤이 서버를 주지 않아 팀이 AWS에 VM 1대를 만들어 쓴다. 서버 1대에 Docker Compose로 세 컨테이너를 올린다.
 
 ```
-인터넷 ─443→ proxy(Caddy) ─┬─ /api/*  → api(Spring Boot :8080) → db(PostgreSQL :5432)
-                           └─ 나머지 → 프론트 빌드 결과(dist)
+인터넷 ─443→ proxy(Caddy) ─┬─ SITE_ADDRESS      ─┬─ /api/*  → api(Spring Boot :8080) → db(PostgreSQL :5432)
+                           │                     └─ 나머지 → 프론트 빌드 결과(dist, 실서버 API 모드)
+                           └─ DEMO_SITE_ADDRESS ─── 프론트 목업 빌드(dist-demo). API 없음, 데이터·시계는 기기 안(D-12)
 ```
 
 - 밖으로 열리는 포트는 80·443뿐이다. api·db 포트는 열지 않는다.
 - 화면과 API가 같은 도메인이라 쿠키·CSRF 설계(D-02)가 그대로 동작한다.
+- 실서버는 출시 그대로 돈다(시연 시계 없음). 며칠이 걸리는 시연 장면은 목업 사이트에서 보여 준다(D-12). DuckDNS는 `demo.<이름>.duckdns.org` 같은 하위 이름도 같은 IP로 보내므로 DNS 설정이 따로 필요 없다.
 - 예약 작업(자정 확정, 04:00 동기화)과 요청 제한이 서버 안에서 돌므로 서버는 항상 켜져 있어야 한다. 서버리스(Cloud Run 등)·Vercel을 쓰지 않는 이유다.
 
 | 파일 | 역할 |
 | --- | --- |
 | [Dockerfile](../Dockerfile) | api 이미지. 서버에서 빌드, root가 아닌 사용자로 실행 |
 | [compose.prod.yaml](../compose.prod.yaml) | proxy·api·db 정의, 메모리 상한 |
-| [deploy/Caddyfile](../deploy/Caddyfile) | HTTPS 자동 발급, `/api` 연결, HSTS, 화면 CSP |
-| [deploy/deploy.sh](../deploy/deploy.sh) | 받기 → 프론트 빌드 → 백업 → 다시 올리기 |
+| [deploy/Caddyfile](../deploy/Caddyfile) | HTTPS 자동 발급, `/api` 연결, HSTS, 화면 CSP, 목업 사이트 |
+| [deploy/deploy.sh](../deploy/deploy.sh) | 받기 → 프론트 빌드(실서버용·목업용) → 백업 → 다시 올리기 |
 | [deploy/.env.prod.example](../deploy/.env.prod.example) | 서버 `.env` 양식 |
 
 ## 1. 서버 만들기 (처음 한 번, 담당 C)
@@ -57,7 +59,7 @@ git clone https://github.com/thdms1/Todax.git frontend
 cd backend
 cp deploy/.env.prod.example .env && chmod 600 .env
 openssl rand -base64 24   # 이 값을 .env의 DB_PASSWORD에
-nano .env                 # SITE_ADDRESS, DB_PASSWORD, DATA_GO_KR_KEY 등 채우기
+nano .env                 # SITE_ADDRESS, DEMO_SITE_ADDRESS, DB_PASSWORD, DATA_GO_KR_KEY 등 채우기
 ```
 
 `.env`는 서버에만 있다. 채팅·노션·저장소에 올리지 않는다.
@@ -97,7 +99,8 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 | 확인 | 방법 | 기대 |
 | --- | --- | --- |
 | HTTPS·HSTS | `curl -sI https://<도메인>/` | `strict-transport-security` 있음 |
-| 화면 CSP | 같은 명령 | `content-security-policy: default-src 'self'; script-src 'self' ...` |
+| 화면 CSP | 같은 명령 | `content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' ...`(외부 도메인 없음) |
+| 목업 사이트 | `curl -sI https://<목업 도메인>/`, `curl -s -o /dev/null -w '%{http_code}' https://<목업 도메인>/api/v1/health` | 화면 200 + 같은 CSP·`x-robots-tag: noindex`, API는 404 |
 | API CSP | `curl -s -D - -o /dev/null https://<도메인>/api/v1/health` (GET이어야 함. `-I`는 HEAD라 401) | `content-security-policy: default-src 'none' ...` |
 | 세션 쿠키 | 브라우저 개발자 도구 → 쿠키 | `__Host-hp_session`, HttpOnly·Secure |
 | 닫힌 포트 | 내 PC에서 `nc -zv <IP> 5432`, `nc -zv <IP> 8080` | 둘 다 연결 안 됨 |

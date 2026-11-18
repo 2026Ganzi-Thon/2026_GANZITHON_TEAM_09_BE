@@ -55,7 +55,7 @@ com.haengunping
 ├─ notification (B) 웹 푸시 구독·발송, 알림 설정
 ├─ check     (C) 주간 점검
 ├─ help      (C) 도움받을 곳 목록, 순서 신호, 공공서비스 동기화
-└─ demo      (C) 시연 시계 (demo 프로필에서만 빈으로 등록)
+└─ demo      (C) 행사 준비(시드·설정). 시계 API 없음(D-12)
 ```
 
 각 모듈 안은 같은 모양으로 나눈다.
@@ -130,12 +130,11 @@ sequenceDiagram
 
 - `@Scheduled(zone = "Asia/Seoul")`로 돌린다. 서버가 1대라 분산 잠금은 쓰지 않는다.
 - `job_runs`는 `common.job.JobRuns`로만 쓴다(담당 C).
-  - `runOnce(작업, 날짜, 본문)`: 그 날짜를 아직 끝내지 않았으면 실행한다. 실행 권한은 `INSERT … ON CONFLICT` 한 문장으로 가져가므로, 예약 실행과 시연 시계가 동시에 불러도 한 곳만 실행한다.
+  - `runOnce(작업, 날짜, 본문)`: 그 날짜를 아직 끝내지 않았으면 실행한다. 실행 권한은 `INSERT … ON CONFLICT` 한 문장으로 가져가므로, 예약 실행과 서버 재시작 직후의 따라잡기가 동시에 불러도 한 곳만 실행한다.
   - `runPending(작업, 시작일, 종료일, 본문)`: 밀린 날짜를 오래된 순서로 실행하고, 실패한 날에서 멈춘다(CHR-03).
   - 본문은 DONE 기록 전에 서버가 죽으면 다시 실행되므로 **멱등이어야 한다**(NFR-04). 본문의 트랜잭션은 본문이 연다.
   - RUNNING인 채로 1시간(`haengunping.jobs.stale-after`)이 지나면 죽은 실행으로 보고 다시 실행한다. 늦게 끝난 옛 실행은 새 실행의 기록을 덮어쓰지 않는다.
 - 확정 처리는 **00:10 내보내기보다 먼저** 끝나야 한다. 내보내기 작업은 시작할 때 그날 `FINALIZE_PROGRESS`가 `DONE`인지 확인하고, 아니면 먼저 확정 처리를 부른다.
-- 시연 시계를 바꾸면(`PUT /demo/clock`) 확정 처리를 바로 한 번 부른다.
 
 ## 4. 배포
 
@@ -144,9 +143,9 @@ sequenceDiagram
 | 항목 | 안 |
 | --- | --- |
 | 서버 | AWS EC2 `t4g.small` 1대(2 vCPU, 2GB, Arm, 서울) + 스왑 2GB. 도메인은 DuckDNS. 서버리스(Cloud Run)·Vercel은 예약 작업과 같은 출처 쿠키 때문에 쓰지 않음 |
-| 실행 | Docker Compose: `proxy`(Caddy + 프론트 `dist`), `api`(Spring Boot, Java 21), `db`(PostgreSQL 16) |
-| 프록시 | Caddy. HTTPS 인증서 자동 발급, `/api/*` → api, 나머지 → 프론트 정적 파일(없는 경로는 `index.html`) |
-| 환경 | 프로필 `local`, `demo`. 시연 서버는 `demo`(시연 시계·시드 켜짐). `local`만 쿠키 `Secure`를 끌 수 있다(사파리는 http에서 Secure 쿠키를 저장하지 않음) |
+| 실행 | Docker Compose: `proxy`(Caddy + 프론트 `dist`·목업 `dist-demo`), `api`(Spring Boot, Java 21), `db`(PostgreSQL 16) |
+| 프록시 | Caddy. HTTPS 인증서 자동 발급. `SITE_ADDRESS`: `/api/*` → api, 나머지 → 프론트 정적 파일(없는 경로는 `index.html`). `DEMO_SITE_ADDRESS`: 목업 빌드 정적 파일만(API 없음, D-12) |
+| 환경 | 프로필 `local`만 따로 둔다(쿠키 `Secure`를 끌 수 있음, 사파리는 http에서 Secure 쿠키를 저장하지 않음). 서버는 기본 설정 그대로 출시 상태로 돈다. 시연 시계 프로필은 없다(D-12) |
 | 비밀값 | 서버의 `.env`(권한 600)를 Compose가 읽음. 저장소에는 양식(`.env.example`, `deploy/.env.prod.example`)만 |
 | DB 백업 | `deploy.sh`가 배포마다 직전 `pg_dump`, 시연 전날 따로 1회. 시드로 언제든 다시 만들 수 있게 함 |
 | CI | GitHub Actions: 빌드 → 테스트(Testcontainers PostgreSQL) → JaCoCo 커버리지 → gitleaks → 의존성 취약점 검사. Dependabot 주 1회 |
@@ -196,7 +195,7 @@ MVP는 서버 1대를 가정해 단순하게 만들었다. 사용자가 늘면 �
 | 로그 | 요청 로그에서 쿠키·`answers`·`mood` 값 가림(로그 마스킹 필터) | SEC-11 |
 | 민감정보 저장 | 디스크 암호화된 볼륨. 컬럼 단위 암호화는 MVP에서 하지 않음(남은 위험에 기록) | — |
 | 예외 응답 | `@RestControllerAdvice` 하나에서 모든 예외를 `{code, message}`로 바꿈. 예상 밖 예외는 500 `INTERNAL_ERROR`로 답하고 서버 로그에만 원인을 남김(로그 마스킹 적용) | SEC-12 |
-| 시연 시계 | `demo` 프로필 + 시드 시연 계정(`users.is_demo`)만. 아니면 404로 숨김. 화면의 시연 도구도 `isDemo`일 때만 보임 | SEC-13 |
+| 시연 시계 | 실서버에 없음. 날짜 이동은 프론트 목업(기기 안)에서만(D-12). 시드 시연 계정은 세션 토큰이 없어 로그인 불가, `GET /me`의 `isDemo`는 실서버에서 항상 false | SEC-13 |
 | AI 코드·의존성 | PR마다 AI 사용 여부와 검증 방법 체크(PR 템플릿), 버전 잠금, CI 취약점 검사 | SEC-14 |
 
 ## 7. 장애 시 동작
