@@ -155,6 +155,8 @@
 
 ### 🔒 `GET /groups/{groupId}/collection` — 그룹 도감 (CHR-07)
 
+담당 B(character 모듈, A와 합의 2026-11-18). 완성된 캐릭터만 완성 순. 구성원이 아니면 404.
+
 ```json
 { "characters": [ { "characterId": 3, "kind": "SEED", "startedOn": "2026-09-20", "completedOn": "2026-11-08" } ] }
 ```
