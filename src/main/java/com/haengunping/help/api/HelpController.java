@@ -1,7 +1,9 @@
 package com.haengunping.help.api;
 
+import com.haengunping.common.security.CurrentUser;
 import com.haengunping.common.web.ApiPaths;
 import com.haengunping.help.application.HelpItemsService;
+import com.haengunping.help.application.HelpSignalsService;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,8 +16,11 @@ class HelpController {
 
     private final HelpItemsService helpItems;
 
-    HelpController(HelpItemsService helpItems) {
+    private final HelpSignalsService signals;
+
+    HelpController(HelpItemsService helpItems, HelpSignalsService signals) {
         this.helpItems = helpItems;
+        this.signals = signals;
     }
 
     /**
@@ -27,5 +32,16 @@ class HelpController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noCache())
                 .body(HelpItemsResponse.from(helpItems.all()));
+    }
+
+    /**
+     * 순서 신호 두 개(HELP-06). permitAll이지만 세션 필터가 유효한 쿠키면 인증을 채우므로 본인 신호만 준다.
+     * 쿠키가 없거나 무효면 401이 아니라 둘 다 false로 200(온보딩 전 도움받기 탭). 동의 검사는 없다.
+     */
+    @GetMapping("/signals")
+    ResponseEntity<HelpSignalsResponse> signals() {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(HelpSignalsResponse.from(signals.signalsFor(CurrentUser.optionalId())));
     }
 }
