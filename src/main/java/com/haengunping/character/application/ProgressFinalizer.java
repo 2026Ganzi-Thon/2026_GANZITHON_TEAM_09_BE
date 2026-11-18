@@ -1,6 +1,5 @@
 package com.haengunping.character.application;
 
-import com.haengunping.character.ProgressFinalization;
 import com.haengunping.character.domain.CharacterKind;
 import com.haengunping.character.domain.GroupCharacter;
 import com.haengunping.character.domain.Growth;
@@ -35,7 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 날짜마다 한 트랜잭션이고, {@link JobRuns}가 같은 날짜를 두 번 돌지 않게 하고 밀린 날짜를 오래된 순으로 돈다.
  */
 @Service
-public class ProgressFinalizer implements ProgressFinalization, GroupCleanupGate {
+public class ProgressFinalizer implements GroupCleanupGate {
 
     private static final Logger log = LoggerFactory.getLogger(ProgressFinalizer.class);
 
@@ -66,10 +65,10 @@ public class ProgressFinalizer implements ProgressFinalization, GroupCleanupGate
         }
     }
 
-    @Override
+    /** 아직 확정하지 않은 날부터 {@code date}까지 오래된 순으로 확정한다. */
     public CatchUpResult finalizeUpTo(LocalDate date) {
         LocalDate from = characters.earliestStart();
-        // 시연 시계를 시작일보다 앞으로 되돌리면 to < from이 되어 runPending이 예외를 던진다
+        // 모든 캐릭터가 오늘 시작했으면 어제 < 시작일이라 runPending이 to < from 예외를 던진다
         if (from == null || date.isBefore(from)) {
             return new CatchUpResult(List.of(), null);
         }
