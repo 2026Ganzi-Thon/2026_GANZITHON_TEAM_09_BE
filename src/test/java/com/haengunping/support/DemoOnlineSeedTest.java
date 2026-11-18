@@ -100,6 +100,8 @@ class DemoOnlineSeedTest extends IntegrationTest {
         assertThat(count("users")).isEqualTo(1);
         assertThat(count("groups")).isZero();
         assertThat(count("characters")).isZero();
+        assertThat(result.getStderr())
+                .contains("시연 시드는 빈 users/groups/group_members/online_queue/characters");
     }
 
     private void clearDemoTables() {
