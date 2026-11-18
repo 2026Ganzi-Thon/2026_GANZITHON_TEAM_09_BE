@@ -103,7 +103,8 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 3. 확인: 같은 IP에서 11번째 `POST /api/v1/accounts`가 201인지 본다.
 4. **행사가 끝나면 `ACCOUNT_CREATE_LIMIT=10`으로 되돌리고 같은 방법으로 api를 다시 띄운다.** 값을 지우면 기본 10이 쓰인다.
 
-- 0 이하나 잘못된 값(`ACCOUNT_CREATE_WINDOW=1h` 등)이면 api가 뜨지 않는다. `docker compose -f compose.prod.yaml logs api`로 사유를 본다.
+- 창은 `PT1H` 말고 `1h`·`30m` 같은 짧은 형식도 된다(Spring Boot `Duration` 변환).
+- 0 이하나 읽을 수 없는 값(`ACCOUNT_CREATE_LIMIT=0`, `ACCOUNT_CREATE_WINDOW=abc` 등)이면 api가 뜨지 않는다. `docker compose -f compose.prod.yaml logs api`로 사유를 본다.
 - 한도는 api 프로세스 메모리에 있어 재시작하면 지금까지 센 횟수도 0이 된다.
 - Caddy가 붙인 `X-Forwarded-For`로 실제 사용자 IP를 센다(`forward-headers-strategy: native`). 행사장 와이파이 하나는 IP 하나로 보인다.
 
