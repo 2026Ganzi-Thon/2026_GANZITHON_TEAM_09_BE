@@ -116,8 +116,20 @@ cd ~/app/backend && ./deploy/deploy.sh reset
 2. **백업**: `backups/`에 저장하고, 압축이 온전하고 덤프가 끝까지 쓰였는지(`PostgreSQL database dump complete`) 확인한다. 아니면 지우지 않고 멈춘다.
 3. **api 멈춤**: 지우는 동안 새 기록이 들어오지 않게 한다. 화면은 잠깐 API 오류가 난다.
 4. **비우기**: 한 트랜잭션(`psql -1`, `ON_ERROR_STOP`)이라 실패하면 아무것도 지워지지 않고, api를 다시 시작한 뒤 멈춘다. `CASCADE`를 쓰지 않아 시드 테이블이 지울 테이블을 참조하게 되면 같이 지우지 않고 오류로 멈춘다.
-5. **api 다시 시작**: 메모리에만 있는 요청 제한 기록(계정 생성 IP당 한도 등)도 비워진다.
-6. **결과 출력**: `users`·`groups`는 0, `help_items`·`mission_topics`는 0보다 커야 한다.
+5. **api 다시 시작**: 메모리에만 있는 요청 제한 기록(계정 생성 IP당 한도 등)도 비워진다. 컨테이너 시작 성공이 Spring Boot 기동을 뜻하지 않으므로, proxy 컨테이너에서 `http://api:8080/api/v1/health`가 `UP`일 때까지 최대 60초 기다린다.
+6. **결과 출력**: `users`·`groups`는 0, `help_items`·`mission_topics`는 0보다 커야 한다. 5에서 api가 뜨지 않았으면 결과를 보여 준 뒤 실패(종료 코드 1)로 끝난다 — `logs api`로 사유를 본다.
+
+**행사 전에 한 번, 백업으로 되돌릴 수 있는지 확인한다.** 스크립트는 백업이 끝까지 쓰였는지만 보고 실제 복원은 해 보지 않는다. 실서버 DB를 건드리지 않게 같은 db 컨테이너 안의 임시 DB에 넣어 본다.
+
+```bash
+F=backups/<방금 받은 파일>.sql.gz
+docker compose -f compose.prod.yaml exec -T db sh -c 'createdb -U "$POSTGRES_USER" restore_check'
+gunzip -c "$F" | docker compose -f compose.prod.yaml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d restore_check -v ON_ERROR_STOP=1 -q'
+docker compose -f compose.prod.yaml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d restore_check -c "SELECT count(*) AS users FROM users"'
+docker compose -f compose.prod.yaml exec -T db sh -c 'dropdb -U "$POSTGRES_USER" restore_check'
+```
+
+오류 없이 끝나고 `users`가 백업 당시 수와 같으면 된다. 확인 뒤 `restore_check`는 반드시 지운다(위 마지막 줄).
 
 비운 뒤에 할 일: 온라인 그룹 자리 시드(DEMO-03, #58), 행사용 계정 생성 한도(DEMO-05, #59), 5절 보안 점검표. 잘못 지웠으면 방금 받은 백업을 위 "백업 되돌리기"로 되돌린다.
 
