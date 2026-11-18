@@ -18,6 +18,9 @@ public interface GroupCharacterRepository extends JpaRepository<GroupCharacter, 
     @Query("SELECT min(c.startedOn) FROM GroupCharacter c")
     LocalDate earliestStart();
 
+    /** 그날 완성된 캐릭터(완성 연출 justCompleted). */
+    Optional<GroupCharacter> findFirstByGroupIdAndCompletedOn(long groupId, LocalDate completedOn);
+
     /** 도감: 완성된 캐릭터, 완성 순. */
     List<GroupCharacter> findByGroupIdAndCompletedOnIsNotNullOrderByCompletedOnAsc(long groupId);
 }
