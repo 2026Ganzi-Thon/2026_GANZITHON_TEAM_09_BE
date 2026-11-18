@@ -30,6 +30,9 @@ spring:
       enum:
         # SEC-05: 열거값 자리의 숫자를 순서(ordinal)로 받지 않는다. 기본값이면 {"mood":3}이 TIRED로 저장된다.
         fail-on-numbers-for-enums: true
+    deserialization:
+      # CHK-02: 정수 자리의 소수를 잘라 받지 않는다. 기본값이면 {"answers":[2.5,0,0,0]}이 [2,0,0,0]으로 판정된다.
+      accept-float-as-int: false
 
 server:
   error:
