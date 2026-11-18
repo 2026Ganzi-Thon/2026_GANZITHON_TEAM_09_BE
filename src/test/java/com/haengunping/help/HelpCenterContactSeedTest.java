@@ -47,6 +47,16 @@ class HelpCenterContactSeedTest extends IntegrationTest {
     }
 
     @Test
+    void 사람이_다시_확인한_강북구_서대문구_전화로_고쳐져_있다() {
+        assertThat(phoneOf("center-강북구")).isEqualTo("02-901-4860");
+        assertThat(phoneOf("center-서대문구")).isEqualTo("02-337-2176");
+    }
+
+    private String phoneOf(String id) {
+        return jdbc.sql("SELECT phone FROM help_items WHERE id = ?").param(id).query(String.class).single();
+    }
+
+    @Test
     void 도움받기_API가_센터의_전화와_주소를_그대로_준다() throws Exception {
         mvc.perform(get(ApiPaths.V1 + "/help/items"))
                 .andExpect(jsonPath("$.items[?(@.id == 'center-마포구')].phone").value("02-3272-4937"))
