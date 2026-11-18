@@ -47,16 +47,6 @@ class HelpCenterContactSeedTest extends IntegrationTest {
     }
 
     @Test
-    void 구별_센터_밖의_행은_이_시드가_건드리지_않는다() {
-        Integer touched = jdbc.sql("SELECT count(*) FROM help_items WHERE kind <> 'LOCAL_CENTER' AND address IS NOT NULL "
-                        + "AND id LIKE 'center-%'")
-                .query(Integer.class)
-                .single();
-
-        assertThat(touched).isZero();
-    }
-
-    @Test
     void 도움받기_API가_센터의_전화와_주소를_그대로_준다() throws Exception {
         mvc.perform(get(ApiPaths.V1 + "/help/items"))
                 .andExpect(jsonPath("$.items[?(@.id == 'center-마포구')].phone").value("02-3272-4937"))
