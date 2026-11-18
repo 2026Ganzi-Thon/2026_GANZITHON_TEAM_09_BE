@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -62,6 +64,16 @@ public class ProgressFinalizer implements GroupCleanupGate {
         CatchUpResult result = finalizeUpTo(LocalDate.now(clock).minusDays(1));
         if (!result.completed()) {
             log.warn("확정 처리가 {}에서 멈춤, 다음 실행에서 이어 한다", result.stoppedAt());
+        }
+    }
+
+    /** 서버가 꺼져 있던 동안 밀린 날짜를 켜자마자 따라잡는다(CHR-03, D-07). JobRuns가 00:00 작업과 겹쳐도 한 번만 돌게 한다. */
+    @EventListener(ApplicationReadyEvent.class)
+    public void catchUpOnStartup() {
+        try {
+            nightly();
+        } catch (RuntimeException e) {
+            log.error("기동 시 확정 따라잡기 실패, 00:00 작업에서 다시 한다", e); // 서버 기동은 막지 않는다
         }
     }
 

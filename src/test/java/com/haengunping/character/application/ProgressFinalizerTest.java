@@ -9,6 +9,7 @@ import com.haengunping.common.job.CatchUpResult;
 import com.haengunping.common.time.ClockConfig;
 import com.haengunping.support.IntegrationTest;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -32,6 +33,8 @@ class ProgressFinalizerTest extends IntegrationTest {
     GroupCharacterRepository characters;
     @Autowired
     JdbcTemplate jdbc;
+    @Autowired
+    Clock clock;
 
     private long group;
     private final List<Long> users = new ArrayList<>();
@@ -83,6 +86,21 @@ class ProgressFinalizerTest extends IntegrationTest {
         assertThat(second.ran()).isEmpty();
         assertThat(row(D1)).containsExactly(1, 0);
         assertThat(row(D2)).containsExactly(1, 1);
+    }
+
+    @Test
+    void CHR03_서버를_켜면_밀린_날짜를_어제까지_바로_확정한다() {
+        LocalDate today = LocalDate.now(clock);
+        LocalDate start = today.minusDays(2);
+        jdbc.update("UPDATE characters SET started_on = ? WHERE group_id = ?", start, group);
+        member(start, null);
+
+        finalizer.catchUpOnStartup();
+
+        assertThat(row(start)).containsExactly(1, 0);
+        assertThat(row(today.minusDays(1))).containsExactly(1, 0);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM daily_group_progress WHERE group_id = ? AND date = ?",
+                Integer.class, group, today)).isZero();
     }
 
     @Test
