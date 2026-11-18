@@ -24,7 +24,7 @@
 | T4 | 잘못된 입력·열거값 | Bean Validation, Java `enum` 바인딩. 열거값 자리의 숫자를 순서로 받지 않음(`fail-on-numbers-for-enums`). 열거값 오류는 `VALIDATION_FAILED`+필드 이름 | SEC-05 | 임의 문자열·숫자 기분 → 400 `VALIDATION_FAILED`(`MoodControllerTest`), 정의 밖·목록 안·쿼리 파라미터 열거값(`ErrorResponseTest`), 11자 닉네임 → 400 | 열거값 구현·테스트 통과, 핑은 구현 전 |
 | T5 | SQL Injection | JPA·파라미터 바인딩만, 문자열 연결 쿼리 금지 | SEC-06 | 닉네임·초대 코드에 `' OR 1=1 --` → 400 또는 정상 처리, 데이터 변화 없음 | 구현 전 |
 | T6 | XSS(닉네임·그룹 이름) | JSON만 응답, 프론트 이스케이프, CSP 헤더(API는 Spring, 화면 HTML은 Caddy). HttpOnly라 XSS가 생겨도 세션 쿠키는 못 읽음 | SEC-07 | `<script>` 닉네임 저장 후 응답이 문자열 그대로. CSP 헤더는 `ErrorResponseTest`로, 화면 CSP는 배포 후 `curl -I`로 확인 | API·화면 CSP 적용([deploy/Caddyfile](deploy/Caddyfile)), 닉네임은 구현 전 |
-| T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일 | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
+| T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일. 계정 생성 한도는 행사 설정(`ACCOUNT_CREATE_LIMIT`)으로 조정할 수 있고 행사 후 원래 값(10)으로 되돌린다(DEMO-05, [deploy.md](docs/deploy.md)) | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
 | T8 | 성장·완료 수치 조작 | 서버 계산만, 요청 본문의 수치 무시 | SEC-09 | 성장 값을 담아 완료 요청 → 서버 계산값과 같음 | 구현 전 |
 | T9 | 비밀값 유출(공개 레포) | `.env`는 커밋 제외, `.env.example`만. gitleaks를 pre-commit 훅(`.githooks`)과 CI 양쪽에서 실행 | SEC-10 | CI `secrets` 작업, 훅에 가짜 비밀값을 스테이징하면 커밋 거부 | 설정·확인 완료 |
 | T10 | 로그로 민감정보 유출 | 요청 본문·쿠키를 남기는 로그를 두지 않음(앱 요청 로그 없음, Caddy 접근 로그 끔). DB 제약 위반 때 PostgreSQL이 행 전체를 오류 세부 정보에 담아 예외 메시지·500 로그로 나가는 길은 드라이버 `logServerErrorDetail=false`로 막음 | SEC-11 | `SensitiveLogTest`: 제약 위반 메시지에 값 없음(고치기 전 실패 확인), 가입→동의→기분 저장→잘못된 요청 동안 로그 전체에 세션 토큰·기분 값 없음(일부러 값을 찍으면 실패 확인) | 테스트 통과 |
@@ -60,9 +60,12 @@
 | 2026-11-16 | 레포 권한 점검 | 대회 organization 레포라 우리 팀은 write 권한뿐. main 보호 규칙·Dependency graph를 켤 수 없어 GitHub 의존성 검토가 실패 | 의존성 검사를 OSV-Scanner(레포 설정 불필요)로 교체. main 직접 푸시는 각자 PC의 pre-push 훅과 팀 규칙으로 막음(서버에서 강제되지는 않음, 남은 위험) |
 | 2026-11-16 | 첫 커밋 전 gitleaks 전체 검사 | 커밋 대상 0건. 테스트 로그에 Spring 기본 사용자의 임의 비밀번호가 찍힘(로그인 경로는 꺼져 있어 쓸 수 없음) | 아무도 찾지 못하는 `UserDetailsService`로 기본 사용자 생성을 막음. 재검사 0건 |
 | 2026-11-16 | 설계 문서 검토: 공개 서버의 시연 API | `demo` 프로필이면 누구나 서버 날짜 변경 가능 | 시드 시연 계정만 허용, 시연 도구는 시연 계정에만 노출(SEC-13) |
+| 2026-11-17 | 공공서비스 API 동기화 구현 검토(외부 입력·키) | 외부 응답 값이 그대로 화면 링크·문구가 되면 `javascript:`·http 주소나 과도한 길이가 들어올 수 있음. 공공데이터포털은 키를 URL 쿼리(`serviceKey`)로만 받아(헤더 인증은 실제로 400) 요청 URL이 로그·예외에 남으면 키가 샘 | https·호스트 있음·사용자 정보 없음만 허용, 길이 검증(어긋난 칸은 기존 값 유지). 외부 호출 예외는 원래 예외(URL 포함)를 버리고 상태 코드·"통신 실패"만 담아 다시 던짐, 동기화 기록에도 그것만 남김(SEC-11). 타임아웃·재시도 상한 |
 | 2026-11-18 | 리뷰 없이 머지된 PR(#12·#13·#31·#34·#36·#37) 사후 점검 | `DELETE /me/health-records`·`DELETE /me`가 이벤트만 발행하고 받는 곳이 없어 204를 주고도 기분·푸시 구독·알림 설정이 남음(ACC-07·08). UTC 대체 시계가 KST 시계보다 먼저 등록돼 앱 시계가 UTC(실행해 확인) | mood·notification에 삭제 리스너(발행 트랜잭션 안에서 실행, 실패 시 전체 되돌림)와 실제 DB 삭제 테스트. UTC 시계 제거와 "시계는 하나, KST" 테스트. 두 테스트 모두 고치기 전 코드에서 실패하는 것 확인 |
 | 2026-11-18 | 열거값 오류 코드 정리(api.md `VALIDATION_FAILED` vs 서버 `MALFORMED_REQUEST`) | 정의 밖 열거값이 깨진 JSON과 같이 `MALFORMED_REQUEST`로 나가 api.md·프론트 목업과 다름. 더해서 열거값 자리에 숫자를 보내면 Jackson 기본값이 순서(ordinal)로 받아 `{"mood":3}`이 `TIRED`로 저장됨(테스트로 200 확인) | 열거값 오류만 `VALIDATION_FAILED`+필드 경로, 타입 불일치·깨진 JSON은 `MALFORMED_REQUEST` 유지. 숫자 열거값 거부 설정. 새 테스트는 고치기 전 실패, 설정을 끄면 숫자 테스트가 다시 실패하는 것 확인 |
 | 2026-11-18 | 로그로 민감정보가 나가는 길 점검(SEC-11) | 앱에 요청 로그가 없고 Caddy 접근 로그도 꺼져 있어 쿠키·본문은 남지 않음. 대신 DB 제약 위반 예외 메시지에 PostgreSQL이 `Failing row contains (…, 기분 값, …)`로 행 전체를 담음 → Hibernate 오류 로그와 500 로그(`GlobalExceptionHandler`)에 그대로 찍힘(테스트로 확인) | 드라이버 `logServerErrorDetail=false`. 어느 제약인지는 그대로 남음. 흐름 전체 로그 검사 테스트를 지킴이로 추가 |
+| 2026-11-18 | 주간 점검(CHK) 구현 검토: 점검 답의 저장·입력·로그 | (1) 답을 저장하면 가장 민감한 값이 유출·실수 로그의 대상이 됨. (2) 정수 칸에 소수가 오면 Jackson이 잘라 받아 `[2.5,0,0,0]`이 `[2,0,0,0]`으로 판정됨(테스트로 확인). (3) `@Valid`는 동의 확인보다 먼저 400을 내 동의 여부와 무관하게 형식 오류가 드러남 | (1) 답은 저장하지 않고 결과 코드만 남김(D-13). 점검 기록 DB 제약 위반 메시지에 값이 실리지 않는지(`logServerErrorDetail`)와 점검 제출 흐름의 로그에 답·결과가 없는지를 `SensitiveLogTest`·`CheckControllerTest`로 지킴. (2) `accept-float-as-int: false`(앱 전체). (3) 동의 403 → 형식 400 순서로 직접 검사 |
+| 2026-11-18 | `GET /help/signals` 추가(#55): 인증 없이 열린 GET 하나 | 열린 경로이지만 세션 필터가 유효 쿠키만 인증으로 채우고, 값은 본인 기록에서 나온 참/거짓 두 개뿐(없거나 무효 쿠키면 둘 다 false). 다른 메서드는 permitAll이 아님 | 인가 규칙은 GET 경로 하나만 추가. 신호 값은 로그에 남기지 않음. 테스트로 쿠키 없음·무효 쿠키·타인 기록 불섞임·CSRF를 맞춘 POST/PUT 401을 확인 |
 
 ## 5. 취약점 제보
 

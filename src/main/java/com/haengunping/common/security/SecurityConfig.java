@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/accounts").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/csrf").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/help/items").permitAll()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/help/signals").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/push/vapid-public-key").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())

@@ -1,8 +1,43 @@
 package com.haengunping.group;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDate;
-import java.util.Map;
-/** B가 구현할 그룹 성장·미션 조회 포트. 없으면 응답에서 today/character 필드를 생략한다. */
+
 public interface GroupProgressSource {
-    Map<String,Object> summary(long groupId,LocalDate today);
-    Map<String,Object> detail(long groupId,LocalDate today);
+
+    Summary summary(long groupId, LocalDate today);
+
+    Detail detail(long groupId, LocalDate today);
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record TodayProgress(
+            LocalDate date,
+            int completed,
+            int total
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record CharacterProgress(
+            Long characterId,
+            String kind,
+            int stage,
+            double progress
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record JustCompleted(
+            String kind,
+            LocalDate completedOn
+    ) {}
+
+    record Summary(
+            TodayProgress today,
+            CharacterProgress character,
+            JustCompleted justCompleted
+    ) {}
+
+    record Detail(
+            TodayProgress today,
+            CharacterProgress character
+    ) {}
 }
