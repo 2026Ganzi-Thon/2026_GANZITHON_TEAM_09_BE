@@ -43,6 +43,14 @@ public class GroupCharacter {
         this.startedOn = startedOn;
     }
 
+    /** 확정 합이 100에 닿은 날로 완성 처리한다(CHR-07). 이 날까지의 성장이 이 캐릭터 몫이다. */
+    public void complete(LocalDate day) {
+        if (completedOn != null) {
+            throw new IllegalStateException("이미 완성된 캐릭터");
+        }
+        this.completedOn = day;
+    }
+
     public Long id() {
         return id;
     }
