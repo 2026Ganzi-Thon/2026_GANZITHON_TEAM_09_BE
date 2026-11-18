@@ -35,7 +35,7 @@ class AccountDeletionCleanupTest extends IntegrationTest {
     @AfterEach
     void tearDown() {
         for (long id : new long[] {me, other}) {
-            for (String table : new String[] {"moods", "help_card_dismissals", "push_subscriptions", "notification_settings", "daily_missions"}) {
+            for (String table : new String[] {"moods", "help_card_dismissals", "push_subscriptions", "notification_settings", "daily_missions", "checks", "pings"}) {
                 jdbc.update("DELETE FROM " + table + " WHERE user_id = ?", id);
             }
             deleteUser(id);
@@ -43,10 +43,12 @@ class AccountDeletionCleanupTest extends IntegrationTest {
     }
 
     @Test
-    void ACC07_기분_점검_기록_삭제는_기분만_지우고_나머지는_남긴다() {
+    void ACC07_기분_점검_기록_삭제는_기분과_점검만_지우고_나머지는_남긴다() {
         accounts.eraseHealthRecords(me);
 
         assertThat(count("moods", me)).isZero();
+        assertThat(count("checks", me)).isZero();
+        assertThat(count("checks", other)).isOne();
         assertThat(count("help_card_dismissals", me)).isOne();
         assertThat(count("push_subscriptions", me)).isOne();
         assertThat(count("notification_settings", me)).isOne();
@@ -55,29 +57,36 @@ class AccountDeletionCleanupTest extends IntegrationTest {
     }
 
     @Test
-    void ACC08_계정_삭제는_기분_도움카드_푸시구독_알림설정_미션을_지운다() {
+    void ACC08_계정_삭제는_기분_점검_도움카드_푸시구독_알림설정_미션_핑을_지운다() {
         accounts.delete(me);
 
         assertThat(count("moods", me)).isZero();
+        assertThat(count("checks", me)).isZero();
+        assertThat(count("checks", other)).isOne();
         assertThat(count("help_card_dismissals", me)).isZero();
         assertThat(count("push_subscriptions", me)).isZero();
         assertThat(count("notification_settings", me)).isZero();
         assertThat(count("daily_missions", me)).isZero();
+        assertThat(count("pings", me)).isZero();
         // users 행은 남기고 지운 시각만 남는다(erd.md 6절)
         assertThat(jdbc.queryForObject("SELECT deleted_at IS NOT NULL FROM users WHERE id = ?", Boolean.class, me)).isTrue();
         // 다른 사람 기록은 그대로
         assertThat(count("moods", other)).isOne();
         assertThat(count("push_subscriptions", other)).isOne();
         assertThat(count("daily_missions", other)).isOne();
+        assertThat(count("pings", other)).isOne();
     }
 
     private void seed(long userId) {
         jdbc.update("INSERT INTO moods (user_id, date, mood, updated_at) VALUES (?, DATE '2026-11-16', 'LONELY', now())", userId);
+        jdbc.update("INSERT INTO checks (user_id, week_start, status, result_codes, created_at) "
+                + "VALUES (?, DATE '2026-11-16', 'DONE', ARRAY['DEPRESSION']::varchar[], now())", userId);
         jdbc.update("INSERT INTO help_card_dismissals (user_id, dismissed_at) VALUES (?, now())", userId);
         jdbc.update("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, 'p', 'a', now())",
                 userId, "https://fcm.googleapis.com/fcm/send/" + UUID.randomUUID());
         jdbc.update("INSERT INTO notification_settings (user_id, weekly_check_reminder) VALUES (?, true)", userId);
         jdbc.update("INSERT INTO daily_missions (user_id, date, topic_id, completed_at) VALUES (?, DATE '2026-11-16', 1, now())", userId);
+        jdbc.update("INSERT INTO pings (user_id, date, emoji, created_at) VALUES (?, DATE '2026-11-16', 'SUN', now())", userId);
     }
 
     private int count(String table, long userId) {

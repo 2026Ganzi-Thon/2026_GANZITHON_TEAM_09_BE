@@ -55,9 +55,52 @@ public class HelpItemRepository {
 
     /** 공공서비스 API 동기화가 마지막으로 성공한 시각. 아직 없으면 비어 있다. */
     public Optional<Instant> lastSyncedAt() {
-        return jdbc.sql("SELECT max(synced_at) FROM help_items")
+        return jdbc.sql("SELECT max(finished_at) FROM service_sync_log WHERE status = 'SUCCESS'")
                 .query((rs, n) -> rs.getObject(1, OffsetDateTime.class))
                 .optional()
                 .map(OffsetDateTime::toInstant);
+    }
+
+    /** 동기화 대상: 공공서비스 ID가 있는 항목. */
+    public List<HelpItem> findSyncTargets() {
+        return findAllInDisplayOrder().stream().filter(i -> i.sourceServiceId() != null).toList();
+    }
+
+    /**
+     * 동기화 값(신청 기한·상세 URL)을 반영한다. 바뀐 칸이 있을 때만 updated_at을 올린다(응답의 version이 매일 바뀌지 않게).
+     * 시각은 DB now()를 쓰는 운영 기록이다.
+     */
+    public void applySync(HelpItem merged) {
+        jdbc.sql("""
+                        UPDATE help_items
+                        SET updated_at = CASE WHEN (url, deadline) IS DISTINCT FROM (:url, :deadline)
+                                              THEN now() ELSE updated_at END,
+                            url = :url, deadline = :deadline,
+                            synced_at = now()
+                        WHERE id = :id
+                        """)
+                .param("id", merged.id())
+                .param("url", merged.url())
+                .param("deadline", merged.deadline())
+                .update();
+    }
+
+    public long startSyncLog() {
+        return jdbc.sql("INSERT INTO service_sync_log (started_at, status) VALUES (now(), 'RUNNING') RETURNING id")
+                .query(Long.class)
+                .single();
+    }
+
+    public void finishSyncLog(long id, boolean success, int updatedCount, String error) {
+        jdbc.sql("""
+                        UPDATE service_sync_log
+                        SET finished_at = now(), status = :status, updated_count = :count, error = :error
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .param("status", success ? "SUCCESS" : "FAILED")
+                .param("count", updatedCount)
+                .param("error", error)
+                .update();
     }
 }
