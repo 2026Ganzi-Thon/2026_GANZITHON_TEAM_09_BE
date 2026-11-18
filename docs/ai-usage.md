@@ -68,4 +68,6 @@ reason = "취약한 기능(XML 외부 엔티티)을 호출하는 코드가 없�
 | 2026-11-18 | 열거값 오류를 api.md대로 `VALIDATION_FAILED`+필드 경로로, 숫자 열거값 거부 | Claude Code | Jackson 3 예외 API(`MismatchedInputException.getTargetType`, `JacksonException.getPath`)를 jar에서 직접 확인. 테스트를 먼저 써서 고치기 전 4개 실패 확인, 숫자 거부 설정을 끄면 다시 실패하는 것 확인. 짝으로 타입 불일치는 `MALFORMED_REQUEST` 유지 테스트 | 테스트를 쓰다가 열거값 자리의 숫자가 순서로 받아들여져 200이 나는 것을 발견(SEC-05 구멍) → 같은 PR에서 설정으로 막음 |
 | 2026-11-18 | 로그로 민감정보 유출 막기(SEC-11): DB 오류 세부 정보 끄기, 로그 검사 테스트 | Claude Code | 고치기 전 테스트가 `Failing row contains (…XSECRETX…)`로 실패하는 것 확인, 고친 뒤 통과. 흐름 로그 검사는 일부러 기분 값을 로그에 찍으면 실패하는 것 확인 | 문서의 "요청 로그에서 가림"은 가릴 요청 로그가 없어 맞지 않음 → 실제로 새는 길(DB 제약 위반 메시지)을 찾아 막음. 첫 테스트는 값을 SQL에 직접 넣어 SQL 본문에도 값이 보였음 → 앱처럼 바인딩 파라미터로 고침 |
 
+| 2026-11-18 | 실서버 비우기(#57): `deploy/reset.sql`, `deploy.sh reset`, `ResetScriptTest` | Claude Code | 실제 PostgreSQL 16에서 운영과 같은 `psql -v ON_ERROR_STOP=1 -1 -f -`로 5개 시나리오 확인(전부 비움·시드 유지, 빠뜨린 테이블 없음, 새 테이블도 비움, 식별자 재시작, 시드가 지울 테이블을 참조하면 멈춤). 남길 목록에 `users`를 일부러 넣어 테스트 4개가 실패하는 것 확인. 쉘 흐름은 가짜 `docker`로 6개 시나리오(주소 오입력 취소·정상·실패 시 api 되살림·끊긴 백업에서 중단·db 꺼짐·모르는 명령). **실서버·실제 compose는 돌리지 못함** | 처음에는 `reset.sql`을 고쳐도 Gradle이 테스트를 UP-TO-DATE로 건너뛰어 일부러 넣은 오류가 통과했음 → 스크립트를 테스트 입력으로 선언. 처음 쓴 `psql -1`은 stdin만 쓰면 단일 트랜잭션이 안 되므로 `-f -`로 고침 |
+
 구현을 시작하면 PR 단위로 이 표에 한 줄씩 추가한다.

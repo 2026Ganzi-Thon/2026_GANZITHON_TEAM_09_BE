@@ -49,6 +49,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // ResetScriptTest가 읽는 파일. 입력으로 선언하지 않으면 스크립트를 고쳐도 테스트가 UP-TO-DATE로 건너뛰어진다.
+    inputs.file("deploy/reset.sql").withPropertyName("resetScript").withPathSensitivity(PathSensitivity.RELATIVE)
     finalizedBy(tasks.jacocoTestReport)
 }
 
