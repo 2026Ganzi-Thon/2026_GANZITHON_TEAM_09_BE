@@ -29,11 +29,12 @@ echo "== 저장소 최신으로 받기"
 git pull --ff-only
 git -C "$FRONTEND_DIR" pull --ff-only
 
-echo "== 프론트 빌드 (실서버 API 모드)"
+echo "== 프론트 빌드 (dist: 실서버 API 모드, dist-demo: 시연용 목업 모드, D-12)"
 docker run --rm \
   -v "$(cd "$FRONTEND_DIR" && pwd)":/app -w /app \
-  -e VITE_API_MODE=http \
-  node:24-alpine sh -c 'npm ci --no-audit --no-fund && npm run build'
+  node:24-alpine sh -c 'npm ci --no-audit --no-fund \
+    && VITE_API_MODE=http npm run build \
+    && VITE_API_MODE=mock npm run build -- --outDir dist-demo'
 
 # DB가 이미 떠 있으면 배포 전에 백업한다(마이그레이션이 실패해도 되돌릴 수 있게).
 if [ -n "$("${COMPOSE[@]}" ps -q db 2>/dev/null)" ]; then

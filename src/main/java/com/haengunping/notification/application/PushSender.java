@@ -34,7 +34,7 @@ public class PushSender {
         int delivered = 0;
         for (PushSubscription s : subscriptions.findByUserId(userId)) {
             try {
-                int status = client.send(s.endpoint(), s.p256dh(), s.auth(), message.payload());
+                int status = client.send(s.endpoint(), s.p256dh(), s.auth(), message.payload(), message.ttl());
                 if (status == 404 || status == 410) {
                     subscriptions.deleteById(s.id());
                 } else if (status / 100 == 2) {
