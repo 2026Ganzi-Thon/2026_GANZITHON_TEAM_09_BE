@@ -87,7 +87,7 @@ API는 `http://localhost:8080/api/v1`, 상태 확인은 `GET /api/v1/health`입�
 
 | 훅 | 언제 도나 | 무엇을 막나 |
 | --- | --- | --- |
-| `pre-commit` | `git commit` 직전 | 커밋하려는 파일에 API 키·비밀번호 같은 비밀값이 있으면 커밋을 거부합니다(gitleaks) |
+| `pre-commit` | `git commit` 직전 | 커밋하려는 파일에 API 키·비밀번호 같은 비밀값이 있으면 커밋을 거부합니다(gitleaks). 루트의 `STATUS.md`(각자 PC의 작업 메모)가 스테이징돼 있어도 거부합니다 |
 | `pre-push` | `git push` 직전 | main 브랜치에 바로 푸시하면 거부합니다 |
 
 **켜기: 클론한 뒤 한 번만** 레포 폴더에서 실행합니다. 클론을 새로 받으면 다시 해야 합니다.

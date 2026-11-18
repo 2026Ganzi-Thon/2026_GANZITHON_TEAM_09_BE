@@ -18,6 +18,7 @@ import com.haengunping.common.web.ApiPaths;
 import com.haengunping.common.web.HealthController;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -119,6 +121,65 @@ class ErrorResponseTest {
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
     }
 
+    // 열거값 오류는 api.md 공통 규칙대로 VALIDATION_FAILED + 필드 이름이다(2026-11-18 확정).
+    // 깨진 JSON·숫자 자리에 문자열 같은 "읽을 수 없는" 요청만 MALFORMED_REQUEST다.
+    @Test
+    @WithMockUser
+    void SEC05_정의_밖_열거값은_400_VALIDATION_FAILED와_필드_이름() throws Exception {
+        mvc.perform(post(PROBE + "/choice").with(realCsrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"GREEN\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fields[0]").value("color"));
+    }
+
+    @Test
+    @WithMockUser
+    void SEC05_목록_안의_열거값_오류는_경로까지_필드_이름에_담는다() throws Exception {
+        mvc.perform(post(PROBE + "/choices").with(realCsrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[{\"color\":\"RED\"},{\"color\":\"red\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fields[0]").value("items[1].color"));
+    }
+
+    @Test
+    @WithMockUser
+    void SEC05_열거값_자리의_숫자는_순서로_받지_않고_400() throws Exception {
+        mvc.perform(post(PROBE + "/choice").with(realCsrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fields[0]").value("color"));
+    }
+
+    @Test
+    @WithMockUser
+    void SEC05_쿼리_파라미터의_정의_밖_열거값도_400_VALIDATION_FAILED() throws Exception {
+        mvc.perform(get(PROBE + "/choice").param("color", "GREEN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fields[0]").value("color"));
+    }
+
+    // 짝: 열거값이 아닌 타입 불일치는 그대로 MALFORMED_REQUEST다. 이게 없으면 "400이면 전부 VALIDATION_FAILED"와 구별되지 않는다.
+    @Test
+    @WithMockUser
+    void SEC12_숫자_자리의_문자열은_400_MALFORMED_REQUEST() throws Exception {
+        mvc.perform(post(PROBE + "/choice").with(realCsrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"color\":\"RED\",\"count\":\"abc\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"))
+                .andExpect(jsonPath("$.fields").doesNotExist());
+        mvc.perform(get(PROBE + "/count").param("n", "abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+    }
+
     @Test
     @WithMockUser
     void SEC05_11자_닉네임은_400_VALIDATION_FAILED와_필드_이름() throws Exception {
@@ -183,6 +244,34 @@ class ErrorResponseTest {
         @PostMapping("/body")
         Body body(@Valid @RequestBody Body body) {
             return body;
+        }
+
+        enum Color { RED, BLUE }
+
+        record Choice(@NotNull Color color, Integer count) {
+        }
+
+        record Choices(java.util.List<Choice> items) {
+        }
+
+        @PostMapping("/choice")
+        Choice choice(@Valid @RequestBody Choice choice) {
+            return choice;
+        }
+
+        @PostMapping("/choices")
+        Choices choices(@Valid @RequestBody Choices choices) {
+            return choices;
+        }
+
+        @GetMapping("/choice")
+        Color choiceParam(@RequestParam Color color) {
+            return color;
+        }
+
+        @GetMapping("/count")
+        int count(@RequestParam int n) {
+            return n;
         }
 
         @GetMapping("/boom")

@@ -21,7 +21,7 @@
 | T1 | 다른 사람의 그룹·기분·점검 조회 | 구성원 검사 실패 시 404(존재 여부도 숨김). 기분·점검은 `userId` 조건으로만 조회, 그룹 응답에 필드 없음 | SEC-02, 03 | 사용자 A로 B 그룹 조회·핑·신고 → 404. 그룹 응답 JSON에 `mood`·`check` 키 없음 | 구현 전 |
 | T2 | 세션 탈취 | `__Host-hp_session` 쿠키(HttpOnly·Secure·SameSite=Lax, 하위 도메인이 쿠키를 심지 못함), 토큰은 `SecureRandom` 256비트, DB에는 SHA-256 해시만, HTTPS·HSTS(Caddy), 로그에서 쿠키 가림(T10). 로그인이 없어 탈취된 쿠키를 재로그인으로 끊을 수는 없음(남은 위험, D-11) | SEC-01 | 쿠키 이름·속성 검사, 토큰 길이 32바이트, DB 값이 원문 토큰과 다름 | 구현 전 |
 | T3 | CSRF | `CookieCsrfTokenRepository` + SPA 방식 처리기, 모든 응답에 토큰 쿠키 | SEC-04 | `ErrorResponseTest`: 첫 GET에 쿠키 발급, 쿠키 값을 헤더로 보내면 통과, 토큰 없음·위조 → 403 `CSRF_INVALID` | 구현·테스트 통과 |
-| T4 | 잘못된 입력·열거값 | Bean Validation, Java `enum` 바인딩 | SEC-05 | 임의 문자열 기분·핑, 11자 닉네임 → 400 | 구현 전 |
+| T4 | 잘못된 입력·열거값 | Bean Validation, Java `enum` 바인딩. 열거값 자리의 숫자를 순서로 받지 않음(`fail-on-numbers-for-enums`). 열거값 오류는 `VALIDATION_FAILED`+필드 이름 | SEC-05 | 임의 문자열·숫자 기분 → 400 `VALIDATION_FAILED`(`MoodControllerTest`), 정의 밖·목록 안·쿼리 파라미터 열거값(`ErrorResponseTest`), 11자 닉네임 → 400 | 열거값 구현·테스트 통과, 핑은 구현 전 |
 | T5 | SQL Injection | JPA·파라미터 바인딩만, 문자열 연결 쿼리 금지 | SEC-06 | 닉네임·초대 코드에 `' OR 1=1 --` → 400 또는 정상 처리, 데이터 변화 없음 | 구현 전 |
 | T6 | XSS(닉네임·그룹 이름) | JSON만 응답, 프론트 이스케이프, CSP 헤더(API는 Spring, 화면 HTML은 Caddy). HttpOnly라 XSS가 생겨도 세션 쿠키는 못 읽음 | SEC-07 | `<script>` 닉네임 저장 후 응답이 문자열 그대로. CSP 헤더는 `ErrorResponseTest`로, 화면 CSP는 배포 후 `curl -I`로 확인 | API·화면 CSP 적용([deploy/Caddyfile](deploy/Caddyfile)), 닉네임은 구현 전 |
 | T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일 | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
@@ -62,6 +62,7 @@
 | 2026-11-16 | 설계 문서 검토: 공개 서버의 시연 API | `demo` 프로필이면 누구나 서버 날짜 변경 가능 | 시드 시연 계정만 허용, 시연 도구는 시연 계정에만 노출(SEC-13) |
 | 2026-11-17 | 공공서비스 API 동기화 구현 검토(외부 입력·키) | 외부 응답 값이 그대로 화면 링크·문구가 되면 `javascript:`·http 주소나 과도한 길이가 들어올 수 있음. 공공데이터포털은 키를 URL 쿼리(`serviceKey`)로만 받아(헤더 인증은 실제로 400) 요청 URL이 로그·예외에 남으면 키가 샘 | https·호스트 있음·사용자 정보 없음만 허용, 길이 검증(어긋난 칸은 기존 값 유지). 외부 호출 예외는 원래 예외(URL 포함)를 버리고 상태 코드·"통신 실패"만 담아 다시 던짐, 동기화 기록에도 그것만 남김(SEC-11). 타임아웃·재시도 상한 |
 | 2026-11-18 | 리뷰 없이 머지된 PR(#12·#13·#31·#34·#36·#37) 사후 점검 | `DELETE /me/health-records`·`DELETE /me`가 이벤트만 발행하고 받는 곳이 없어 204를 주고도 기분·푸시 구독·알림 설정이 남음(ACC-07·08). UTC 대체 시계가 KST 시계보다 먼저 등록돼 앱 시계가 UTC(실행해 확인) | mood·notification에 삭제 리스너(발행 트랜잭션 안에서 실행, 실패 시 전체 되돌림)와 실제 DB 삭제 테스트. UTC 시계 제거와 "시계는 하나, KST" 테스트. 두 테스트 모두 고치기 전 코드에서 실패하는 것 확인 |
+| 2026-11-18 | 열거값 오류 코드 정리(api.md `VALIDATION_FAILED` vs 서버 `MALFORMED_REQUEST`) | 정의 밖 열거값이 깨진 JSON과 같이 `MALFORMED_REQUEST`로 나가 api.md·프론트 목업과 다름. 더해서 열거값 자리에 숫자를 보내면 Jackson 기본값이 순서(ordinal)로 받아 `{"mood":3}`이 `TIRED`로 저장됨(테스트로 200 확인) | 열거값 오류만 `VALIDATION_FAILED`+필드 경로, 타입 불일치·깨진 JSON은 `MALFORMED_REQUEST` 유지. 숫자 열거값 거부 설정. 새 테스트는 고치기 전 실패, 설정을 끄면 숫자 테스트가 다시 실패하는 것 확인 |
 
 ## 5. 취약점 제보
 

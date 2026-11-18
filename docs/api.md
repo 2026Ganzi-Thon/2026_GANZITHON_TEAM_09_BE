@@ -24,8 +24,8 @@
 
 | HTTP | code | 언제 |
 | --- | --- | --- |
-| 400 | `VALIDATION_FAILED` | 형식·범위·열거값 오류. `fields` 배열에 필드 이름 |
-| 400 | `MALFORMED_REQUEST` | JSON을 읽을 수 없음(깨진 JSON, 타입 불일치) |
+| 400 | `VALIDATION_FAILED` | 형식·범위·열거값 오류(열거값 자리의 숫자 포함, 쿼리 파라미터도 같음). `fields` 배열에 필드 이름, 목록 안이면 `items[1].color`처럼 경로 |
+| 400 | `MALFORMED_REQUEST` | JSON을 읽을 수 없음(깨진 JSON, 숫자 자리에 문자열 같은 타입 불일치). `fields` 없음 |
 | 401 | `UNAUTHENTICATED` | 쿠키가 없거나 무효 |
 | 403 | `CSRF_INVALID` | CSRF 토큰 불일치 |
 | 403 | `CONSENT_REQUIRED` | 민감정보 동의 없이 기분·점검 저장 |

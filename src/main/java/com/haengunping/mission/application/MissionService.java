@@ -4,14 +4,23 @@ import com.haengunping.mission.domain.DailyMission;
 import com.haengunping.mission.domain.DailyMission.Place;
 import com.haengunping.mission.domain.MissionSize;
 import com.haengunping.mission.domain.MissionTopic;
+import com.haengunping.mission.domain.MissionTopic.Category;
+import com.haengunping.mission.domain.MissionTopic.SizeType;
 import com.haengunping.mission.domain.TopicPicker;
 import com.haengunping.mission.infra.DailyMissionRepository;
 import com.haengunping.mission.infra.MissionTopicRepository;
 import com.haengunping.mood.Mood;
 import com.haengunping.mood.MoodQuery;
 import java.time.Clock;
+import com.haengunping.common.error.ApiException;
+import com.haengunping.common.error.ErrorCode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +58,30 @@ public class MissionService {
         return view(userId, today, mission);
     }
 
+    /** 다 했어요(MIS-07). 시작하지 않은 미션도 완료할 수 있고, 하루 1회만(NFR-09). */
+    public Instant complete(long userId) {
+        LocalDate today = LocalDate.now(clock);
+        findOrAssign(userId, today);
+        Instant now = clock.instant();
+        if (missions.completeIfNotYet(userId, today, now) == 0) {
+            throw new ApiException(ErrorCode.ALREADY_COMPLETED);
+        }
+        return now;
+    }
+
+    /** 내 기록: 그달 완료한 미션, 날짜순. 문구는 시작할 때 고른 장소 것(시작 없이 완료했으면 밖). */
+    @Transactional(readOnly = true)
+    public List<Record> records(long userId, YearMonth month) {
+        List<DailyMission> done = missions.findCompleted(userId, month.atDay(1), month.atEndOfMonth());
+        Map<Short, MissionTopic> byId = topics.findAllById(done.stream().map(DailyMission::topicId).distinct().toList())
+                .stream().collect(Collectors.toMap(MissionTopic::id, Function.identity()));
+        return done.stream().map(m -> {
+            MissionTopic t = byId.get(m.topicId());
+            String text = m.place() == Place.INDOOR ? t.indoorText() : t.outdoorText();
+            return new Record(m.date(), t.category(), text, m.size(), t.sizeType());
+        }).toList();
+    }
+
     private DailyMission findOrAssign(long userId, LocalDate today) {
         return missions.findByUserIdAndDate(userId, today).orElseGet(() -> {
             var recent = missions.findTopicIds(userId, today.minusDays(TopicPicker.RECENT_DAYS), today.minusDays(1));
@@ -74,6 +107,9 @@ public class MissionService {
     }
 
     public record Defaults(int minutes, Place place) {
+    }
+
+    public record Record(LocalDate date, Category category, String text, Integer size, SizeType sizeType) {
     }
 
     public record TodayMission(DailyMission mission, MissionTopic topic, Map<Integer, Integer> sizeByMinutes, Defaults defaults) {

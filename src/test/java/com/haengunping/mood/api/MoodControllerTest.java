@@ -74,7 +74,13 @@ class MoodControllerTest extends IntegrationTest {
     @Test
     void MOOD01_모르는_기분_값이나_빈_값은_400() throws Exception {
         consent();
-        mvc.perform(json(put(TODAY), "{\"mood\":\"HAPPY\"}")).andExpect(status().isBadRequest());
+        // 모르는 값·숫자·빈 값 모두 같은 코드와 필드 이름(api.md 공통 규칙, 2026-11-18 확정)
+        for (String body : new String[] {"{\"mood\":\"HAPPY\"}", "{\"mood\":3}"}) {
+            mvc.perform(json(put(TODAY), body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                    .andExpect(jsonPath("$.fields[0]").value("mood"));
+        }
         mvc.perform(json(put(TODAY), "{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));

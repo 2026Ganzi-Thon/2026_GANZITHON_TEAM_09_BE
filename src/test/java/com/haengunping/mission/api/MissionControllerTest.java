@@ -115,6 +115,38 @@ class MissionControllerTest extends IntegrationTest {
     }
 
     @Test
+    void MIS07_다_했어요는_완료_시각과_그룹_배열을_주고_두_번째는_409() throws Exception {
+        mvc.perform(json(post(TODAY + "/complete"), ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedAt").isNotEmpty())
+                .andExpect(jsonPath("$.groups").isArray());
+
+        mvc.perform(json(post(TODAY + "/complete"), ""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_COMPLETED"));
+    }
+
+    @Test
+    void 내_기록은_api_md_모양으로_준다() throws Exception {
+        mvc.perform(json(post(TODAY + "/complete"), "")).andExpect(status().isOk());
+        String month = LocalDate.now(clock).toString().substring(0, 7);
+
+        mvc.perform(get(ApiPaths.V1 + "/me/records").param("month", month).with(as(me)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.missions[0].date").value(LocalDate.now(clock).toString()))
+                .andExpect(jsonPath("$.missions[0].category").value("NATURE_SUN"))
+                .andExpect(jsonPath("$.missions[0].text").value("햇빛 받으며 걷기"))
+                .andExpect(jsonPath("$.missions[0].sizeType").value("TIME"))
+                .andExpect(jsonPath("$.missions[0].size").isEmpty());
+    }
+
+    @Test
+    void 내_기록_month_형식이_틀리면_400() throws Exception {
+        mvc.perform(get(ApiPaths.V1 + "/me/records").param("month", "2026-13").with(as(me)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void SEC01_로그인하지_않으면_401() throws Exception {
         mvc.perform(get(TODAY)).andExpect(status().isUnauthorized());
     }
