@@ -18,6 +18,8 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.HttpHeaders;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 /**
  * 모든 예외를 {@code {code, message}}로 바꾸는 곳(SEC-12).
@@ -59,10 +61,54 @@ public class GlobalExceptionHandler {
         return validationFailed(List.of(e.getParameterName()));
     }
 
-    // 깨진 JSON, 정의 밖 열거값, 숫자 자리에 문자열 등
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
-    ResponseEntity<ErrorResponse> handleMalformed(Exception e) {
+    /*
+     * 본문을 읽지 못한 요청. api.md 공통 규칙에 따라 둘로 가른다(2026-11-18 확정).
+     * - 정의 밖 열거값: "값이 틀렸다" → VALIDATION_FAILED + 필드 이름(화면이 어느 칸인지 알 수 있게)
+     * - 깨진 JSON, 숫자 자리에 문자열 같은 타입 불일치: MALFORMED_REQUEST
+     * 열거값 자리의 숫자도 열거값 오류다(application.yml에서 순서로 받는 것을 꺼 둠).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException e) {
+        MismatchedInputException mismatch = causeOf(e, MismatchedInputException.class);
+        if (mismatch != null && isEnum(mismatch.getTargetType())) {
+            return validationFailed(fieldPath(mismatch));
+        }
         return respond(ErrorCode.MALFORMED_REQUEST);
+    }
+
+    // 쿼리·경로 파라미터의 타입 불일치. 위와 같은 기준으로 열거값만 VALIDATION_FAILED.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        if (isEnum(e.getRequiredType())) {
+            return validationFailed(List.of(e.getName()));
+        }
+        return respond(ErrorCode.MALFORMED_REQUEST);
+    }
+
+    private static boolean isEnum(Class<?> type) {
+        return type != null && type.isEnum();
+    }
+
+    /** Jackson 경로를 필드 이름으로: items[1].color. 최상위가 열거값이라 이름이 없으면 빈 목록. */
+    private static List<String> fieldPath(JacksonException e) {
+        StringBuilder path = new StringBuilder();
+        for (JacksonException.Reference ref : e.getPath()) {
+            if (ref.getPropertyName() != null) {
+                path.append(path.isEmpty() ? "" : ".").append(ref.getPropertyName());
+            } else if (ref.getIndex() >= 0) {
+                path.append('[').append(ref.getIndex()).append(']');
+            }
+        }
+        return path.isEmpty() ? List.of() : List.of(path.toString());
+    }
+
+    private static <T extends Throwable> T causeOf(Throwable e, Class<T> type) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (type.isInstance(t)) {
+                return type.cast(t);
+            }
+        }
+        return null;
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
