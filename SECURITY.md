@@ -24,7 +24,7 @@
 | T4 | 잘못된 입력·열거값 | Bean Validation, Java `enum` 바인딩. 열거값 자리의 숫자를 순서로 받지 않음(`fail-on-numbers-for-enums`). 열거값 오류는 `VALIDATION_FAILED`+필드 이름 | SEC-05 | 임의 문자열·숫자 기분 → 400 `VALIDATION_FAILED`(`MoodControllerTest`), 정의 밖·목록 안·쿼리 파라미터 열거값(`ErrorResponseTest`), 11자 닉네임 → 400 | 열거값 구현·테스트 통과, 핑은 구현 전 |
 | T5 | SQL Injection | JPA·파라미터 바인딩만, 문자열 연결 쿼리 금지 | SEC-06 | 닉네임·초대 코드에 `' OR 1=1 --` → 400 또는 정상 처리, 데이터 변화 없음 | 구현 전 |
 | T6 | XSS(닉네임·그룹 이름) | JSON만 응답, 프론트 이스케이프, CSP 헤더(API는 Spring, 화면 HTML은 Caddy). HttpOnly라 XSS가 생겨도 세션 쿠키는 못 읽음 | SEC-07 | `<script>` 닉네임 저장 후 응답이 문자열 그대로. CSP 헤더는 `ErrorResponseTest`로, 화면 CSP는 배포 후 `curl -I`로 확인 | API·화면 CSP 적용([deploy/Caddyfile](deploy/Caddyfile)), 닉네임은 구현 전 |
-| T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일 | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
+| T7 | 무차별 요청(계정 생성·초대 코드 맞히기·신고 남용) | Bucket4j: 계정 생성 IP당 10/시, 초대 참여 20/시, 신고 사용자당 10/일. 계정 생성 한도는 행사 설정(`ACCOUNT_CREATE_LIMIT`)으로 조정할 수 있고 행사 후 원래 값(10)으로 되돌린다(DEMO-05, [deploy.md](docs/deploy.md)) | SEC-08 | 한도+1번째 → 429 + `Retry-After` | 구현 전 |
 | T8 | 성장·완료 수치 조작 | 서버 계산만, 요청 본문의 수치 무시 | SEC-09 | 성장 값을 담아 완료 요청 → 서버 계산값과 같음 | 구현 전 |
 | T9 | 비밀값 유출(공개 레포) | `.env`는 커밋 제외, `.env.example`만. gitleaks를 pre-commit 훅(`.githooks`)과 CI 양쪽에서 실행 | SEC-10 | CI `secrets` 작업, 훅에 가짜 비밀값을 스테이징하면 커밋 거부 | 설정·확인 완료 |
 | T10 | 로그로 민감정보 유출 | 요청 본문·쿠키를 남기는 로그를 두지 않음(앱 요청 로그 없음, Caddy 접근 로그 끔). DB 제약 위반 때 PostgreSQL이 행 전체를 오류 세부 정보에 담아 예외 메시지·500 로그로 나가는 길은 드라이버 `logServerErrorDetail=false`로 막음 | SEC-11 | `SensitiveLogTest`: 제약 위반 메시지에 값 없음(고치기 전 실패 확인), 가입→동의→기분 저장→잘못된 요청 동안 로그 전체에 세션 토큰·기분 값 없음(일부러 값을 찍으면 실패 확인) | 테스트 통과 |
