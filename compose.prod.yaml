@@ -41,6 +41,9 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       COOKIE_SECURE: "true"
+      # 계정 생성 한도(IP당, SEC-08). 행사 당일만 .env에서 올린다(docs/deploy.md).
+      ACCOUNT_CREATE_LIMIT: ${ACCOUNT_CREATE_LIMIT:-10}
+      ACCOUNT_CREATE_WINDOW: ${ACCOUNT_CREATE_WINDOW:-PT1H}
       # Caddy가 붙인 X-Forwarded-For/Proto를 믿는다(사용자 IP로 요청 제한, https 여부).
       # Tomcat은 사설 IP(도커 네트워크)에서 온 헤더만 믿고, api 포트는 밖에 열지 않는다.
       SERVER_FORWARD_HEADERS_STRATEGY: native

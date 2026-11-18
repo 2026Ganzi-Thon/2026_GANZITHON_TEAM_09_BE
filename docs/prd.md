@@ -244,7 +244,7 @@
 | B | `characters` | id, group_id, kind, started_on, completed_on |
 | B | `daily_group_progress` | group_id, date, member_count, completed_count, finalized_at (unique group_id+date) |
 | B | `push_subscriptions`, `notification_settings` | user_id, endpoint, keys / mission_time, weekly_check |
-| C | `checks` | user_id, week_start, answers(4), result_codes, created_at / dismissed |
+| C | `checks` | user_id, week_start, status(DONE·DISMISSED), result_codes, created_at (답은 저장하지 않음, D-13) |
 | C | `help_items` | id, section, name, phone, url, apply_method, deadline, rules(JSON), source_service_id, synced_at |
 | C | `service_sync_log` | started_at, finished_at, status, error |
 | 공용(C) | `job_runs` | job_name, run_key(날짜), status — 정시 작업 중복 실행 방지·밀린 날짜 처리 |
