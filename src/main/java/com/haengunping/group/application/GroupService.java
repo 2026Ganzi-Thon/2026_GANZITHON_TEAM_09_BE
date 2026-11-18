@@ -66,10 +66,21 @@ public class GroupService {
         GroupMember self=members.findByGroupIdAndUserIdAndLeftAtIsNull(groupId,userId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
         var active=members.findByGroupIdAndLeftAtIsNullOrderByJoinedAtAsc(groupId);
         var visible=active.stream().map(m->new MemberResponse(m.getId(),m.getDisplayName())).toList();
-        Map<String,Object> data=progress.getIfAvailable()!=null?progress.getObject().detail(groupId,today()):Map.of();
-        return new GroupDetailResponse(group.getId(),group.getType(),group.getName(),
-                new MemberResponse(self.getId(),self.getDisplayName()),visible,
-                (Map<String,Object>)data.get("today"),(Map<String,Object>)data.get("character"),group.isDemo());
+        GroupProgressSource source = progress.getIfAvailable();
+
+        GroupProgressSource.Detail data = source != null
+                ? source.detail(groupId, today())
+                : null;
+        return new GroupDetailResponse(
+                group.getId(),
+                group.getType(),
+                group.getName(),
+                new MemberResponse(self.getId(), self.getDisplayName()),
+                visible,
+                data != null ? data.today() : null,
+                data != null ? data.character() : null,
+                group.isDemo()
+        );
     }
     @Transactional
     public void leave(long userId,long groupId) { leaveWithReason(userId,groupId,LeftReason.LEFT); }
@@ -110,11 +121,22 @@ public class GroupService {
             throw new ApiException(ErrorCode.GROUP_LIMIT, "그룹은 최대 3개까지 참여할 수 있어요");
     }
     private GroupSummaryResponse summary(Group g) {
-        Map<String,Object> data=progress.getIfAvailable()!=null?progress.getObject().summary(g.getId(),today()):Map.of();
-        return new GroupSummaryResponse(g.getId(),g.getType(),g.getName(),
-                (int)members.countByGroupIdAndLeftAtIsNull(g.getId()),
-                (Map<String,Object>)data.get("today"),(Map<String,Object>)data.get("character"),g.isDemo(),
-                (Map<String,Object>)data.get("justCompleted"));
+        GroupProgressSource source = progress.getIfAvailable();
+
+        GroupProgressSource.Summary data = source != null
+                ? source.summary(g.getId(), today())
+                : null;
+
+        return new GroupSummaryResponse(
+                g.getId(),
+                g.getType(),
+                g.getName(),
+                (int) members.countByGroupIdAndLeftAtIsNull(g.getId()),
+                data != null ? data.today() : null,
+                data != null ? data.character() : null,
+                g.isDemo(),
+                data != null ? data.justCompleted() : null
+        );
     }
     private LocalDate today() {return LocalDate.now(clock.withZone(KST));}
 }
