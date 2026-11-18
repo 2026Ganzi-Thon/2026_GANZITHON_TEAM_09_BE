@@ -94,6 +94,33 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 - **시연 중에는 배포하지 않는다.** 프론트 빌드 동안 몇 초 화면이 비고 api가 다시 뜨는 동안 요청이 실패한다.
 - `docker compose down -v`는 DB와 인증서를 지운다. 쓰지 않는다.
 
+
+### 시연용 ONLINE 그룹 시드 (#58, DEMO-04)
+
+행사 직전 `deploy.sh reset`을 완료한 뒤, 실제 계정 생성 전에 수동으로 시드를 삽입한다. `deploy/seed-demo-online.sql`은 시연 계정 12명, ONLINE 그룹 3개(그룹당 4명), 진행 중 `SEED` 캐릭터 3개(그룹당 1개)를 만든다. 각 그룹에는 신규 사용자 2명이 참여할 수 있다. 가상 계정은 `is_demo=true`, `token_hash=NULL`이므로 로그인할 수 없다.
+
+시드는 일반 Flyway 마이그레이션이 아니다. 기존 계정·그룹·캐릭터·대기열이 있는 DB에서는 삽입을 거부한다. 최초 시드가 온전한 상태에서 다시 실행하면 데이터를 변경하지 않는다. 신규 사용자가 가입하거나 그룹에 참여한 뒤에는 재실행하지 않는다.
+
+```bash
+# 백업 및 승인된 reset이 완료된 뒤 실행한다. 반드시 실서버 최초 시연 전 검증한다.
+docker compose -f compose.prod.yaml exec -T db \
+  sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' \
+  < deploy/seed-demo-online.sql
+
+# 실제 사용자 유입 이전에 실행한다.
+docker compose -f compose.prod.yaml exec -T db \
+  sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' \
+  < deploy/verify-demo-online.sql
+```
+
+검증 SQL은 시연 그룹 3개, 로그인 불가 계정 12개, 그룹당 활성 구성원 4명, 진행 중 캐릭터 1개(`kind=SEED`, KST 시작일), 빈 대기열을 확인한다. 표에는 각 그룹의 `active_members=4`, `free_slots=2`, `active_characters=1`이 출력되어야 한다.
+
+`OnlineMatchService`는 빈자리가 있는 인원 적은 그룹부터 채우므로, 초기 상태에서 정상적인 신규 사용자 6명은 3개 그룹에 분산되어 `MATCHED`로 참여할 수 있다. 6개 자리가 모두 차면 그다음 요청은 일반 온라인 대기열 처리에 따른다. 이 동작은 초기 상태를 전제로 하며, 참가자 탈퇴·정리·다른 그룹 생성 이후에는 달라질 수 있다.
+
+SQL 직접 삽입으로는 `GroupCreatedEvent`가 발생하지 않아 캐릭터를 명시적으로 추가한다. 가상 계정의 `daily_missions` 완료 기록은 넣지 않는다. 따라서 새 사용자가 유일한 완료자라면 오늘 완료 수는 `1/5`로 표시된다. 시연에 미션 완료 시나리오가 필요하면 B 담당자와 합의한 후 *시연용 계정에 한해서* 별도 데이터를 설계한다.
+
+시드를 적용한 뒤에는 실제 테스트 계정을 정상 API로 생성하여 온라인 매칭, 그룹 응답의 `isDemo=true` 및 `character` 존재 여부를 확인한다. 00:00 성장 확정, 00:10 비활성 정리의 동작도 검증한다. SQL 실행 테스트가 CI에 연결되기 전까지는 실제 서버 적용 및 최종 머지를 보류한다. `deploy.sh`에 자동 시드 명령을 붙일지는 운영 담당 C와 결정한다.
+
 ### 행사 당일 계정 생성 한도 올리기 (DEMO-05)
 
 행사장은 심사위원·관람객이 한 공인 IP를 같이 쓴다. 평소 한도(SEC-08, IP당 10개/시간)로는 10번째부터 가입이 429로 막힌다. 코드 변경 없이 `.env`로 올린다.

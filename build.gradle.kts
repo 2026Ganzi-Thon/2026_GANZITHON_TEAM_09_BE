@@ -50,6 +50,13 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+    inputs.file("deploy/seed-demo-online.sql")
+        .withPropertyName("demoOnlineSeed")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    inputs.file("deploy/verify-demo-online.sql")
+        .withPropertyName("demoOnlineVerify")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.jacocoTestReport {
