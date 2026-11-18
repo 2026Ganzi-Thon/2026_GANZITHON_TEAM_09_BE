@@ -65,6 +65,21 @@ class MoodServiceTest extends IntegrationTest {
     }
 
     @Test
+    void HELP06_오늘까지_3일_연속_외로워요일_때만_신호() {
+        LocalDate today = MONDAY.plusDays(2);
+        put(me, today.minusDays(2), Mood.LONELY);
+        put(me, today.minusDays(1), Mood.LONELY);
+        put(me, today, Mood.LONELY);
+        put(other, today.minusDays(2), Mood.LONELY);
+        put(other, today, Mood.LONELY); // 가운데 날 기록 없음
+        assertThat(service.lonelyThreeDaysUpTo(me, today)).isTrue();
+        assertThat(service.lonelyThreeDaysUpTo(other, today)).isFalse();
+
+        put(me, today.minusDays(1), Mood.DEPRESSED); // 낮은 기분이어도 외로워요가 아니면 끊김
+        assertThat(service.lonelyThreeDaysUpTo(me, today)).isFalse();
+    }
+
+    @Test
     void MOOD05_기간_안의_기록만_날짜순으로_준다() {
         put(me, MONDAY.plusDays(2), Mood.CALM);
         put(me, MONDAY, Mood.GOOD);

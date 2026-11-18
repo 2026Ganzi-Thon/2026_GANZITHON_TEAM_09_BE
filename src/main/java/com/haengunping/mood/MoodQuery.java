@@ -11,4 +11,7 @@ public interface MoodQuery {
 
     /** weekStart(월요일)부터 일요일까지 7일 중 낮은 기분을 기록한 날 수(CHK-03). */
     int lowMoodDaysInWeek(long userId, LocalDate weekStart);
+
+    /** today를 포함한 3일(today-2 ~ today) 모두 '외로워요'인지(HELP-06 lonely3Days). 하루라도 비거나 다르면 false. */
+    boolean lonelyThreeDaysUpTo(long userId, LocalDate today);
 }
