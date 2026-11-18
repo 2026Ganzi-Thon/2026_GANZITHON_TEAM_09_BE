@@ -41,7 +41,7 @@ class PingControllerTest extends IntegrationTest {
     @BeforeEach
     void setUp() {
         today = LocalDate.now(clock);
-        group = jdbc.queryForObject("INSERT INTO groups (type, name, created_at) VALUES ('FRIEND', '테스트', now()) RETURNING id", Long.class);
+        group = createGroup();
         me = createUser();
         other = createUser();
         outsider = createUser();
@@ -53,7 +53,7 @@ class PingControllerTest extends IntegrationTest {
     void cleanUp() {
         jdbc.update("DELETE FROM blocks WHERE blocker_member_id IN (SELECT id FROM group_members WHERE group_id = ?)", group);
         jdbc.update("DELETE FROM group_members WHERE group_id = ?", group);
-        jdbc.update("DELETE FROM groups WHERE id = ?", group);
+        deleteGroup(group);
         for (long user : new long[] {me, other, outsider}) {
             jdbc.update("DELETE FROM pings WHERE user_id = ?", user);
             jdbc.update("DELETE FROM daily_missions WHERE user_id = ?", user);
@@ -84,8 +84,10 @@ class PingControllerTest extends IntegrationTest {
     void PING01_모르는_이모티콘이면_400() throws Exception {
         complete(me);
 
-        // 코드는 공통 처리(GlobalExceptionHandler)가 정한다. PRD는 400만 요구
-        mvc.perform(send(me, "HEART")).andExpect(status().isBadRequest());
+        mvc.perform(send(me, "HEART"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fields[0]").value("emoji"));
     }
 
     @Test
