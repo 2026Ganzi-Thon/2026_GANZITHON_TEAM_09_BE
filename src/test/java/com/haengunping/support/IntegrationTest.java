@@ -40,4 +40,15 @@ public abstract class IntegrationTest {
     protected void deleteUser(long userId) {
         userJdbc.sql("DELETE FROM users WHERE id = :id").param("id", userId).update();
     }
+
+    /** 외래 키를 만족하는 그룹 행(구성원 없음)을 만들고 id를 준다. 정리는 {@link #deleteGroup}로, 그 그룹을 참조하는 행을 지운 뒤에. */
+    protected long createGroup() {
+        return userJdbc.sql("INSERT INTO groups (type, name, created_at) VALUES ('FRIEND', '테스트', now()) RETURNING id")
+                .query(Long.class)
+                .single();
+    }
+
+    protected void deleteGroup(long groupId) {
+        userJdbc.sql("DELETE FROM groups WHERE id = :id").param("id", groupId).update();
+    }
 }

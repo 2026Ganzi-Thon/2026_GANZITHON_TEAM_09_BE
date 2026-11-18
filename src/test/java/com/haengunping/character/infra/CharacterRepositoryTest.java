@@ -9,8 +9,8 @@ import com.haengunping.character.domain.GroupCharacter;
 import com.haengunping.support.IntegrationTest;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,13 +28,21 @@ class CharacterRepositoryTest extends IntegrationTest {
     @Autowired
     JdbcTemplate jdbc;
 
-    private final long group = ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE);
-    private final long otherGroup = group - 1;
+    private long group;
+    private long otherGroup;
+
+    @BeforeEach
+    void createGroups() {
+        group = createGroup();
+        otherGroup = createGroup();
+    }
 
     @AfterEach
     void cleanUp() {
         jdbc.update("DELETE FROM daily_group_progress WHERE group_id IN (?, ?)", group, otherGroup);
         jdbc.update("DELETE FROM characters WHERE group_id IN (?, ?)", group, otherGroup);
+        deleteGroup(group);
+        deleteGroup(otherGroup);
     }
 
     @Test
