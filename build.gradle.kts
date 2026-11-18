@@ -57,6 +57,10 @@ tasks.test {
     inputs.file("deploy/verify-demo-online.sql")
         .withPropertyName("demoOnlineVerify")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    testLogging {
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 tasks.jacocoTestReport {

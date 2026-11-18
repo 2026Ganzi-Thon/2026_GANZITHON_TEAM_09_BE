@@ -112,7 +112,16 @@ class DemoOnlineSeedTest extends IntegrationTest {
     }
 
     private static void assertSucceeded(ExecResult result) {
-        assertThat(result.getExitCode()).as(result.getStderr()).isZero();
+        if (result.getExitCode() != 0) {
+            System.err.println("=== PostgreSQL 시드 실행 실패 ===");
+            System.err.println("종료 코드: " + result.getExitCode());
+            System.err.println("STDOUT:\n" + result.getStdout());
+            System.err.println("STDERR:\n" + result.getStderr());
+        }
+
+        assertThat(result.getExitCode())
+                .as("psql 실행 오류:\n%s", result.getStderr())
+                .isZero();
     }
 
     private static ExecResult runScript(String path) {
