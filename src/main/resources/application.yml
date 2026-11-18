@@ -9,6 +9,12 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/haengunping}
     username: ${DB_USERNAME:haengunping}
     password: ${DB_PASSWORD:}
+    hikari:
+      data-source-properties:
+        # SEC-11: PostgreSQL은 제약 위반 때 "Failing row contains (...)"로 행 전체(기분 같은 민감정보 포함)를
+        # 오류 세부 정보에 담고, 드라이버가 그걸 예외 메시지에 붙여 Hibernate·500 로그로 남는다.
+        # 끄면 "어느 제약을 어겼는지"까지만 남는다(SensitiveLogTest).
+        logServerErrorDetail: false
   jpa:
     open-in-view: false
     hibernate:
