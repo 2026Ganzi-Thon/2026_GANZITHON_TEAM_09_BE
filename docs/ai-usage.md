@@ -72,4 +72,6 @@ reason = "취약한 기능(XML 외부 엔티티)을 호출하는 코드가 없�
 
 | 2026-11-18 | 주간 마음 점검 CHK-01~06: 3개 API, `checks`(답은 저장하지 않음, D-13), `CheckQuery`, 삭제 리스너, `FieldValidationException` | Claude Code | 판정 표 4줄·경계값은 순수 함수 단위 테스트로, 요일·시각 경계(일 17:59/18:00/23:59, 월 00:00)는 `Clock`을 바꿔 가며 앱 전체(실제 PostgreSQL)로 확인. 8개 스레드 동시 제출 → 201 한 건·409 일곱 건. 응답 키 집합 고정, 로그 검사 테스트 추가. 전체 250개 이상 통과 | 첫 테스트가 `{"answers":[2.5,0,0,0]}`이 201로 받아져 2로 잘려 판정되는 결함을 잡음 → `accept-float-as-int: false`(앱 전체 입력이 엄격해짐). 처음 쓴 로그 테스트에 범위 밖 답을 409로 기대하는 모순이 있어(검증이 먼저라 400) 고침 |
 
+| 2026-11-18 | 도움받기 순서 신호 `GET /help/signals`(HELP-06, #55): permitAll(GET만), `CurrentUser.optionalId()`, `HelpSignalsService` | Claude Code | 쿠키 없음·무효 쿠키 → 200 false/false, 외로워요 3일, 6일 전 DEPRESSION 제출 true·8일 전 false, 닫기만 한 주 false, 다른 사람 기록 불섞임, 응답 키 두 개, CSRF를 맞춘 POST·PUT은 401. 전체 테스트·커버리지 통과 | 처음 쓴 POST 테스트가 CSRF 403에 가려져 인가 규칙을 못 확인함 → CSRF 토큰을 붙여 401로 고침 |
+
 구현을 시작하면 PR 단위로 이 표에 한 줄씩 추가한다.

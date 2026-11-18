@@ -65,6 +65,7 @@
 | 2026-11-18 | 열거값 오류 코드 정리(api.md `VALIDATION_FAILED` vs 서버 `MALFORMED_REQUEST`) | 정의 밖 열거값이 깨진 JSON과 같이 `MALFORMED_REQUEST`로 나가 api.md·프론트 목업과 다름. 더해서 열거값 자리에 숫자를 보내면 Jackson 기본값이 순서(ordinal)로 받아 `{"mood":3}`이 `TIRED`로 저장됨(테스트로 200 확인) | 열거값 오류만 `VALIDATION_FAILED`+필드 경로, 타입 불일치·깨진 JSON은 `MALFORMED_REQUEST` 유지. 숫자 열거값 거부 설정. 새 테스트는 고치기 전 실패, 설정을 끄면 숫자 테스트가 다시 실패하는 것 확인 |
 | 2026-11-18 | 로그로 민감정보가 나가는 길 점검(SEC-11) | 앱에 요청 로그가 없고 Caddy 접근 로그도 꺼져 있어 쿠키·본문은 남지 않음. 대신 DB 제약 위반 예외 메시지에 PostgreSQL이 `Failing row contains (…, 기분 값, …)`로 행 전체를 담음 → Hibernate 오류 로그와 500 로그(`GlobalExceptionHandler`)에 그대로 찍힘(테스트로 확인) | 드라이버 `logServerErrorDetail=false`. 어느 제약인지는 그대로 남음. 흐름 전체 로그 검사 테스트를 지킴이로 추가 |
 | 2026-11-18 | 주간 점검(CHK) 구현 검토: 점검 답의 저장·입력·로그 | (1) 답을 저장하면 가장 민감한 값이 유출·실수 로그의 대상이 됨. (2) 정수 칸에 소수가 오면 Jackson이 잘라 받아 `[2.5,0,0,0]`이 `[2,0,0,0]`으로 판정됨(테스트로 확인). (3) `@Valid`는 동의 확인보다 먼저 400을 내 동의 여부와 무관하게 형식 오류가 드러남 | (1) 답은 저장하지 않고 결과 코드만 남김(D-13). 점검 기록 DB 제약 위반 메시지에 값이 실리지 않는지(`logServerErrorDetail`)와 점검 제출 흐름의 로그에 답·결과가 없는지를 `SensitiveLogTest`·`CheckControllerTest`로 지킴. (2) `accept-float-as-int: false`(앱 전체). (3) 동의 403 → 형식 400 순서로 직접 검사 |
+| 2026-11-18 | `GET /help/signals` 추가(#55): 인증 없이 열린 GET 하나 | 열린 경로이지만 세션 필터가 유효 쿠키만 인증으로 채우고, 값은 본인 기록에서 나온 참/거짓 두 개뿐(없거나 무효 쿠키면 둘 다 false). 다른 메서드는 permitAll이 아님 | 인가 규칙은 GET 경로 하나만 추가. 신호 값은 로그에 남기지 않음. 테스트로 쿠키 없음·무효 쿠키·타인 기록 불섞임·CSRF를 맞춘 POST/PUT 401을 확인 |
 
 ## 5. 취약점 제보
 
