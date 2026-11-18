@@ -1,2 +1,15 @@
 package com.haengunping.group.api.dto;
-@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) public record GroupSummaryResponse(long groupId,com.haengunping.group.domain.GroupType type,String name,int memberCount,java.util.Map<String,Object> today,java.util.Map<String,Object> character,boolean isDemo,java.util.Map<String,Object> justCompleted) {}
+
+import com.haengunping.group.GroupProgressSource;
+import com.haengunping.group.domain.GroupType;
+
+public record GroupSummaryResponse(
+        Long id,
+        GroupType type,
+        String name,
+        int memberCount,
+        GroupProgressSource.TodayProgress today,
+        GroupProgressSource.CharacterProgress character,
+        boolean demo,
+        GroupProgressSource.JustCompleted justCompleted
+) {}
