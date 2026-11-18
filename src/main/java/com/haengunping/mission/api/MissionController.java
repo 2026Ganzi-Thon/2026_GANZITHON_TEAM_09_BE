@@ -2,6 +2,8 @@ package com.haengunping.mission.api;
 
 import com.haengunping.common.security.CurrentUser;
 import com.haengunping.common.web.ApiPaths;
+import com.haengunping.mission.application.GroupTodayService;
+import com.haengunping.mission.application.GroupTodayService.GroupToday;
 import com.haengunping.mission.application.MissionService;
 import com.haengunping.mission.application.MissionService.Defaults;
 import com.haengunping.mission.application.MissionService.TodayMission;
@@ -29,9 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class MissionController {
 
     private final MissionService service;
+    private final GroupTodayService groupToday;
 
-    public MissionController(MissionService service) {
+    public MissionController(MissionService service, GroupTodayService groupToday) {
         this.service = service;
+        this.groupToday = groupToday;
     }
 
     @GetMapping
@@ -46,11 +50,12 @@ public class MissionController {
 
     @PostMapping("/complete")
     public CompleteResponse complete() {
-        return new CompleteResponse(service.complete(CurrentUser.id()), List.of());
+        long userId = CurrentUser.id();
+        Instant completedAt = service.complete(userId);
+        return new CompleteResponse(completedAt, groupToday.afterCompletion(userId));
     }
 
-    /** shortcut: groups는 빈 배열, A groups·CharacterQuery가 들어오면 #32에서 그룹별 완료 수·단계를 채운다. */
-    public record CompleteResponse(Instant completedAt, List<Object> groups) {
+    public record CompleteResponse(Instant completedAt, List<GroupToday> groups) {
     }
 
     /** 값의 범위(5·10·20분, 크기)는 도메인이 검사해 400을 준다. */
