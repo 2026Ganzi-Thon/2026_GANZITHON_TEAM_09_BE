@@ -44,7 +44,7 @@ src/main/java/com/haengunping/
 ├─ notification (B) 웹 푸시, 알림 설정
 ├─ check     (C) 주간 마음 점검
 ├─ help      (C) 도움받을 곳 목록, 공공서비스 동기화
-└─ demo      (C) 시연 시계 (demo 프로필에서만)
+└─ demo      (C) 행사 준비(시드·설정). 시계 API 없음(D-12)
 
 모듈 안: api(컨트롤러·DTO) / application(서비스) / domain(엔티티·규칙) / infra(리포지토리·외부 API) / XxxQuery.java(공개 인터페이스)
 ```

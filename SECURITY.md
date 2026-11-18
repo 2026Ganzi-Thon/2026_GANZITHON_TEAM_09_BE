@@ -29,7 +29,7 @@
 | T9 | 비밀값 유출(공개 레포) | `.env`는 커밋 제외, `.env.example`만. gitleaks를 pre-commit 훅(`.githooks`)과 CI 양쪽에서 실행 | SEC-10 | CI `secrets` 작업, 훅에 가짜 비밀값을 스테이징하면 커밋 거부 | 설정·확인 완료 |
 | T10 | 로그로 민감정보 유출 | 요청 로그에서 쿠키·`answers`·`mood` 가림 | SEC-11 | 로그 캡처 후 원문 값 없음 | 구현 전 |
 | T11 | 오류 응답으로 내부 정보 노출 | 전역 예외 처리, 500은 고정 문구, 스택·SQL 없음 | SEC-12 | `ErrorResponseTest`: 깨진 JSON 400, 없는 메서드 405, 없는 경로 404, 예상 밖 오류 500(SQL·예외 이름 없음), 401·403도 같은 모양 | 구현·테스트 통과 |
-| T12 | 시연 시계로 서버 날짜 조작 | `demo` 프로필 + 시드 시연 계정(`users.is_demo`)만 허용, 아니면 404. 계정 생성 API는 `is_demo`를 받지 않음. 화면 시연 도구도 시연 계정에만 보임 | SEC-13 | 일반 계정 쿠키로 호출 → 404, 운영 프로필 → 404, `POST /accounts` 본문에 `isDemo: true`를 넣어도 false | 구현 전 |
+| T12 | 시연 시계로 서버 날짜 조작 | **실서버에 시계 API를 두지 않음**(D-12): 시간 이동은 프론트 목업(기기 안)에서만. 시드 시연 계정은 세션 토큰이 없어 로그인 불가, 계정 생성 API는 `is_demo`를 받지 않음 | SEC-13 | `/api/v1/demo/clock` → 404, `POST /accounts` 본문에 `isDemo: true`를 넣어도 `GET /me`의 `isDemo`는 false(`AccountDemoFlagTest`) | 공격 표면 제거, 테스트 통과 |
 | T13 | 검증 안 된 AI 코드·취약한 라이브러리 | PR 템플릿 체크, 버전 잠금(`gradle.lockfile`), OSV-Scanner로 잠금 파일 전체 검사(취약점 있으면 실패, 주 1회 재검사), Dependabot | SEC-14 | CI `dependencies` 작업. 알려진 취약 버전(log4j 2.14.1)을 넣으면 실패하는 것 확인 | 설정·확인 완료 |
 | T14 | 온라인 그룹 괴롭힘 | 차단(핑 안 보임), 서로 다른 2명 신고 시 그룹에서 제외, 신고 사실 비공개 | GRP | 2명 신고 → 구성원에서 빠짐 | 구현 전 |
 | T15 | 동시 참여로 6명·3그룹 제한 우회 | 그룹 행 잠금(`SELECT … FOR UPDATE`) | NFR-08 | 7명 동시 참여 → 6명만 | 구현 전 |
