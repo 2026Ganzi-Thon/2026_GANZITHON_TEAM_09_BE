@@ -34,7 +34,7 @@ BEGIN
         AND (SELECT count(*) FROM online_queue) = 0
         AND (SELECT count(*) FROM characters) = 3
         AND (SELECT count(DISTINCT name) FROM groups) = 3
-        AND (SELECT count(DISTINCT user_id) FROM group_members) = 12
+        AND (SELECT count(DISTINCT gm.user_id) FROM group_members gm) = 12
         AND (SELECT count(*) FROM groups
              WHERE is_demo AND type = 'ONLINE' AND archived_at IS NULL
                AND name = ANY(seed_group_names)) = 3
