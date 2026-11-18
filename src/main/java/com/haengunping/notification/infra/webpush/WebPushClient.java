@@ -19,7 +19,6 @@ public class WebPushClient {
 
     static final Duration TIMEOUT = Duration.ofSeconds(3);
     /** 기기가 꺼져 있으면 푸시 서비스가 보관하는 시간. 미션·점검 알림은 하루 지나면 의미가 없다. */
-    static final Duration TTL = Duration.ofHours(12);
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -44,7 +43,7 @@ public class WebPushClient {
     }
 
     /** @return 푸시 서비스의 HTTP 상태 코드. 404·410이면 구독이 만료된 것이다(NOTI-05). */
-    public int send(String endpoint, String p256dh, String auth, byte[] payload) throws IOException, InterruptedException {
+    public int send(String endpoint, String p256dh, String auth, byte[] payload, Duration ttl) throws IOException, InterruptedException {
         if (!isEnabled()) {
             throw new IllegalStateException("VAPID 키가 없다");
         }
@@ -65,7 +64,7 @@ public class WebPushClient {
                 .header("Authorization", authorization)
                 .header("Content-Encoding", "aes128gcm")
                 .header("Content-Type", "application/octet-stream")
-                .header("TTL", String.valueOf(TTL.toSeconds()))
+                .header("TTL", String.valueOf(ttl.toSeconds()))
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
         return http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();

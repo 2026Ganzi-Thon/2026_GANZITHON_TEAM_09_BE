@@ -8,6 +8,7 @@ import com.haengunping.mission.domain.MissionTopic.Category;
 import com.haengunping.mission.domain.MissionTopic.SizeType;
 import com.haengunping.mission.domain.TopicPicker;
 import com.haengunping.mission.infra.DailyMissionRepository;
+import com.haengunping.mission.MissionQuery;
 import com.haengunping.mission.infra.MissionTopicRepository;
 import com.haengunping.mood.Mood;
 import com.haengunping.mood.MoodQuery;
@@ -17,8 +18,11 @@ import com.haengunping.common.error.ErrorCode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -28,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 /** 오늘 미션 배정·시작(MIS-02~06). */
 @Service
 @Transactional
-public class MissionService {
+public class MissionService implements MissionQuery {
 
     private static final Defaults FIRST_DEFAULTS = new Defaults(10, Place.OUTDOOR);
 
@@ -67,6 +71,12 @@ public class MissionService {
             throw new ApiException(ErrorCode.ALREADY_COMPLETED);
         }
         return now;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> completedUserIds(Collection<Long> userIds, LocalDate date) {
+        return userIds.isEmpty() ? Set.of() : new HashSet<>(missions.findCompletedUserIds(userIds, date));
     }
 
     /** 내 기록: 그달 완료한 미션, 날짜순. 문구는 시작할 때 고른 장소 것(시작 없이 완료했으면 밖). */
