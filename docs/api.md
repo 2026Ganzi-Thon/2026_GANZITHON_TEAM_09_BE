@@ -296,6 +296,9 @@ IP당 시간당 20회. 201, 그룹 상세 응답. 404 / 410 / 409(`GROUP_FULL`, 
 
 409(`ALREADY_COMPLETED`).
 
+- `groups`: 지금 속한 그룹마다. `today.completed`는 지금 구성원 중 오늘 완료한 수라 완료한 뒤 들어온 사람도 센다(MIS-08). 누가 완료했는지는 없다(CHR-10).
+- `character`: 오늘 임시 성장을 더한 표시 값(CHR-05·06). `stageChanged`는 내 완료로 단계가 바뀌었는지. 진행 중 캐릭터가 없는 그룹이면 `null`.
+
 ### 🔒 `GET /me/records?month=2026-11` — 내 기록 (참여한 미션)
 
 ```json
