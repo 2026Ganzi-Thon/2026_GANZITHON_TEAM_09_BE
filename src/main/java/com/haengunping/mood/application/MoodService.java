@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,5 +48,10 @@ public class MoodService implements MoodQuery {
     @Override
     public int lowMoodDaysInWeek(long userId, LocalDate weekStart) {
         return moods.countByUserIdAndDateBetweenAndMoodIn(userId, weekStart, weekStart.plusDays(6), Mood.LOW);
+    }
+
+    @Override
+    public boolean lonelyThreeDaysUpTo(long userId, LocalDate today) {
+        return moods.countByUserIdAndDateBetweenAndMoodIn(userId, today.minusDays(2), today, Set.of(Mood.LONELY)) == 3;
     }
 }
