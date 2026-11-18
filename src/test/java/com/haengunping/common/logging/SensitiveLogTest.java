@@ -56,6 +56,26 @@ class SensitiveLogTest extends IntegrationTest {
     }
 
     @Test
+    void SEC11_점검_기록의_DB_제약_위반_메시지에도_값이_실리지_않는다() {
+        long userId = createUser();
+        try {
+            Throwable error = catchThrowable(() -> jdbc
+                    .sql("INSERT INTO checks (user_id, week_start, status, result_codes, created_at) "
+                            + "VALUES (:u, DATE '2026-11-16', 'DONE', CAST(:c AS varchar(15)[]), now())")
+                    .param("u", userId)
+                    .param("c", "{XSECRETX}")
+                    .update());
+
+            assertThat(error).isNotNull();
+            assertThat(chainText(error))
+                    .contains("checks_") // 어느 제약인지는 남아야 원인을 찾는다
+                    .doesNotContain("XSECRETX");
+        } finally {
+            deleteUser(userId);
+        }
+    }
+
+    @Test
     void SEC11_가입부터_기분_저장과_잘못된_요청까지_로그에_토큰과_기분이_없다(CapturedOutput output) throws Exception {
         Cookie xsrf = mvc.perform(get(ApiPaths.V1 + "/health")).andReturn().getResponse().getCookie("XSRF-TOKEN");
         Cookie session = mvc.perform(post(ApiPaths.V1 + "/accounts")

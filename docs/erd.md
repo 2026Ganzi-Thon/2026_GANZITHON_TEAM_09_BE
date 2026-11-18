@@ -238,15 +238,16 @@ erDiagram
 
 | 컬럼 | 타입 | 제약 | 설명 |
 | --- | --- | --- | --- |
-| id | bigint | PK | |
+| id | bigint | PK, identity | |
 | user_id | bigint | FK → users | |
-| week_start | date | not null | 그 주 월요일 |
+| week_start | date | not null, 월요일(`ISODOW = 1`) | 그 주 월요일 |
 | status | varchar(10) | check in (`DONE`,`DISMISSED`) | |
-| answers | smallint[4] | null 허용, 각 0~3 | `DISMISSED`면 null |
-| result_codes | varchar(15)[] | null 허용 | `DEPRESSION`,`ANXIETY`,`LOW_MOOD_DAYS`,`STABLE` |
+| result_codes | varchar(15)[] | null 허용, 값은 아래 넷만 | `DEPRESSION`,`ANXIETY`,`LOW_MOOD_DAYS`,`STABLE`. `DONE`이면 하나 이상, `DISMISSED`면 null |
 | created_at | timestamptz | not null | |
 
-- unique (user_id, week_start): 한 주에 1건(제출 또는 닫기).
+- unique (user_id, week_start): 한 주에 1건(제출 또는 닫기). 쓰기는 `INSERT … ON CONFLICT DO NOTHING`.
+- **답(answers)은 저장하지 않는다**([D-13](decisions.md)). 어떤 요구사항도 저장된 답을 다시 쓰지 않고(응답은 결과만 CHK-04, 신호는 결과만 HELP-06), 민감정보는 최소로 모은다.
+- 마이그레이션 `V202611181700__c_create_checks.sql`.
 
 ### `help_items`
 
