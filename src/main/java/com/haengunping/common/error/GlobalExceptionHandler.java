@@ -33,6 +33,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ErrorResponse> handleApi(ApiException e) {
+        if (e instanceof FieldValidationException invalid) {
+            return validationFailed(invalid.fields());
+        }
         return respond(e.code(), ErrorResponse.of(e.code(), e.getMessage()));
     }
 
