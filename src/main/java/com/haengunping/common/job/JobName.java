@@ -10,5 +10,7 @@ public enum JobName {
     /** 00:10 온라인 그룹 7일 미접속 구성원 내보내기(group, 담당 A). GRP-12 */
     REMOVE_INACTIVE,
     /** 04:00 공공서비스 API 동기화(help, 담당 C). HELP-04 */
-    SYNC_SERVICES
+    SYNC_SERVICES,
+    /** 일요일 18:00 점검 알림(notification, 담당 B). NOTI-03. run_key는 그 일요일 */
+    CHECK_REMINDER
 }

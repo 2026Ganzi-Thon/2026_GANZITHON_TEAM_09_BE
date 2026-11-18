@@ -18,7 +18,6 @@ import java.util.Base64;
 public class WebPushClient {
 
     static final Duration TIMEOUT = Duration.ofSeconds(3);
-    /** 기기가 꺼져 있으면 푸시 서비스가 보관하는 시간. 미션·점검 알림은 하루 지나면 의미가 없다. */
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
