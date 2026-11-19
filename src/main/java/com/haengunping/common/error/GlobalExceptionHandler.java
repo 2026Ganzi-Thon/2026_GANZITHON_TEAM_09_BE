@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -122,6 +123,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     ResponseEntity<ErrorResponse> handleNoPath(NoResourceFoundException e) {
         return respond(ErrorCode.NOT_FOUND);
+    }
+
+    // 시큐리티 방화벽이 거절한 경로(//, ; 등). SecurityConfig의 RequestRejectedHandler가 넘긴다.
+    @ExceptionHandler(RequestRejectedException.class)
+    ResponseEntity<ErrorResponse> handleRejected(RequestRejectedException e) {
+        return respond(ErrorCode.MALFORMED_REQUEST);
     }
 
     @ExceptionHandler(AuthenticationException.class)
