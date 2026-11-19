@@ -114,7 +114,7 @@
       "name": "아침 산책단",
       "memberCount": 5,
       "today": { "completed": 4, "total": 5 },
-      "character": { "kind": "CLOVER", "stage": 2, "progress": 49.8 },
+      "character": { "characterId": 31, "kind": "CLOVER", "stage": 2, "progress": 49.8 },
       "isDemo": true
     }
   ],
@@ -125,7 +125,8 @@
 - `progress`는 확정 합 + 오늘 임시 성장, 소수 첫째 자리까지, 최대 100.
 - `stage`는 1~4, 완성 연출 대상이면 응답에 `"justCompleted": { "kind": "SEED", "completedOn": "2026-11-15" }`를 한 번만 넣는다.
   - 서버 기준: 어제 날짜로 완성된 캐릭터(오늘 00:00 확정에서 완성)가 있으면 오늘 하루 동안 목록에 넣는다. "한 번만" 연출은 프론트가 그 그룹을 처음 볼 때 한 번 보여주는 것으로 한다(UserFlow S26). 그날 앱을 열지 않으면 연출은 지나가고 도감에는 남는다.
-  - `today`는 지금 구성원 수(`total`)와 그중 오늘 완료한 수(`completed`). 목록에는 `today.date`와 `character.characterId`가 없고 상세에만 있다.
+  - `today`는 지금 구성원 수(`total`)와 그중 오늘 완료한 수(`completed`). 목록에는 `today.date`가 없고 상세에만 있다.
+  - `character.characterId`는 목록에도 있다(2026-11-19 추가). 프론트가 '나만 보는 캐릭터 별명'을 그룹+캐릭터 ID로 기기에 저장하는 열쇠로 쓴다. 캐릭터가 완성돼 새 캐릭터로 바뀌면 값이 바뀐다.
 
 ### 🔒 `POST /groups` — 친구·1인 그룹 만들기 (GRP-02, 03)
 
