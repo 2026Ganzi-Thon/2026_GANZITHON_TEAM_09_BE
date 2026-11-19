@@ -43,6 +43,7 @@ class CheckReminderJobTest extends IntegrationTest {
     private long dismissed;
     private long lastWeekOnly;
     private long off;
+    private long noConsent;
 
     @BeforeEach
     void setUp() {
@@ -53,6 +54,8 @@ class CheckReminderJobTest extends IntegrationTest {
         dismissed = user(true);
         lastWeekOnly = user(true);
         off = user(false);
+        noConsent = user(true);
+        jdbc.update("UPDATE users SET sensitive_consent_at = NULL WHERE id = ?", noConsent);
         jdbc.update("INSERT INTO checks (user_id, week_start, status, result_codes, created_at) VALUES (?, ?, 'DONE', '{STABLE}', now())",
                 submitted, MONDAY);
         jdbc.update("INSERT INTO checks (user_id, week_start, status, created_at) VALUES (?, ?, 'DISMISSED', now())", dismissed, MONDAY);
@@ -63,7 +66,7 @@ class CheckReminderJobTest extends IntegrationTest {
     @AfterEach
     void cleanUp() {
         jdbc.update("DELETE FROM job_runs WHERE job_name = 'CHECK_REMINDER'");
-        for (long u : List.of(due, submitted, dismissed, lastWeekOnly, off)) {
+        for (long u : List.of(due, submitted, dismissed, lastWeekOnly, off, noConsent)) {
             jdbc.update("DELETE FROM checks WHERE user_id = ?", u);
             jdbc.update("DELETE FROM notification_settings WHERE user_id = ?", u);
             deleteUser(u);
@@ -79,6 +82,7 @@ class CheckReminderJobTest extends IntegrationTest {
         verify(sender, never()).send(eq(submitted), eq(PushMessage.WEEKLY_CHECK_REMINDER));
         verify(sender, never()).send(eq(dismissed), eq(PushMessage.WEEKLY_CHECK_REMINDER));
         verify(sender, never()).send(eq(off), eq(PushMessage.WEEKLY_CHECK_REMINDER));
+        verify(sender, never()).send(eq(noConsent), eq(PushMessage.WEEKLY_CHECK_REMINDER)); // 동의 없으면 점검도 못 한다(ACC-05)
     }
 
     @Test
@@ -91,6 +95,7 @@ class CheckReminderJobTest extends IntegrationTest {
 
     private long user(boolean weeklyCheckReminder) {
         long id = createUser();
+        jdbc.update("UPDATE users SET sensitive_consent_at = now() WHERE id = ?", id);
         tx.executeWithoutResult(s -> settings.upsert(id, null, weeklyCheckReminder));
         return id;
     }
