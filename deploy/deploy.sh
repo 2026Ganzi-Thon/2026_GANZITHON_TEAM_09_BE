@@ -3,6 +3,7 @@
 #   ./deploy/deploy.sh          배포
 #   ./deploy/deploy.sh backup   DB 백업만(backups/ 아래에 저장)
 #   ./deploy/deploy.sh reset    사용자 데이터를 모두 지우고 시드만 남긴다(행사 직전, deploy/reset.sql). 백업을 먼저 받는다
+#   ./deploy/deploy.sh seed     reset 직후 시연용 온라인 그룹 3개를 넣고 검증한다(deploy/seed-demo-online.sql)
 # 시연 중에는 돌리지 않는다(프론트 빌드 동안 몇 초 화면이 비고, api가 다시 뜨는 동안 요청이 실패한다).
 set -euo pipefail
 
@@ -83,6 +84,23 @@ reset() {
   return "$api_ok"
 }
 
+# 시연용 온라인 그룹 시드를 넣고 검증한다(DEMO-03·04, #75). reset 바로 뒤, 실제 가입이 생기기 전에 한 번 돌린다.
+# 시드 SQL이 스스로 빈 DB에서만 넣고, 이미 온전히 들어가 있으면 아무것도 바꾸지 않는다.
+seed() {
+  local f
+  for f in deploy/seed-demo-online.sql deploy/verify-demo-online.sql; do
+    [ -f "$f" ] || { echo "$f 가 없습니다. 시드 PR(#75)이 main에 들어왔는지, git pull 했는지 확인해 주세요." >&2; exit 1; }
+  done
+  [ -n "$("${COMPOSE[@]}" ps -q db 2>/dev/null)" ] \
+    || { echo "db 컨테이너가 떠 있지 않습니다. 먼저 ./deploy/deploy.sh 로 올려 주세요." >&2; exit 1; }
+
+  echo "== 시연 시드 넣기 (빈 DB가 아니면 아무것도 넣지 않고 멈춤)"
+  "${COMPOSE[@]}" exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' < deploy/seed-demo-online.sql
+  echo "== 시드 검증 (그룹마다 active_members=4, free_slots=2, active_characters=1)"
+  "${COMPOSE[@]}" exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' < deploy/verify-demo-online.sql
+  echo "주의: 시드 계정은 로그인하지 않아, 넣은 지 7일째 00:10 미접속 정리(GRP-12)에서 빠진다. 행사 6일 안에 넣을 것."
+}
+
 case "${1:-}" in
   backup)
     backup
@@ -92,9 +110,13 @@ case "${1:-}" in
     reset
     exit 0
     ;;
+  seed)
+    seed
+    exit 0
+    ;;
   "") ;;
   *)
-    echo "알 수 없는 명령: $1 (없음 | backup | reset)" >&2
+    echo "알 수 없는 명령: $1 (없음 | backup | reset | seed)" >&2
     exit 1
     ;;
 esac
