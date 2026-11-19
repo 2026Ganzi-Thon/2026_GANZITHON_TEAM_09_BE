@@ -113,7 +113,7 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 | 확인 | 방법 | 기대 |
 | --- | --- | --- |
 | HTTPS·HSTS | `curl -sI https://<도메인>/` | `strict-transport-security` 있음 |
-| 화면 CSP | 같은 명령 | `content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' ...`(외부 도메인 없음) |
+| 화면 CSP | 같은 명령 | `content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data: blob: ...`(외부 도메인 없음). 화면 몇 개를 넘기며 브라우저 콘솔에 CSP 위반이 없는지도 본다 |
 | 목업 사이트 | `curl -sI https://<목업 도메인>/`, `curl -s -o /dev/null -w '%{http_code}' https://<목업 도메인>/api/v1/health` | 화면 200 + 같은 CSP·`x-robots-tag: noindex`, API는 404 |
 | API CSP | `curl -s -D - -o /dev/null https://<도메인>/api/v1/health` (GET이어야 함. `-I`는 HEAD라 401) | `content-security-policy: default-src 'none' ...` |
 | 세션 쿠키 | 브라우저 개발자 도구 → 쿠키 | `__Host-hp_session`, HttpOnly·Secure |
