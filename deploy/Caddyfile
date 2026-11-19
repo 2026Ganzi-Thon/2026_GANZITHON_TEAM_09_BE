@@ -21,7 +21,9 @@
 	file_server
 
 	# 스크립트·스타일·글꼴 모두 자기 출처만. 프론트가 글꼴을 직접 제공한다(2026-11-17, 구글 글꼴 제거).
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	# font-src data: — 빌드가 작은 글꼴 조각을 CSS 안에 data:로 넣는다(빼면 일부 글자가 다른 글꼴로 보임).
+	# img-src blob: — 추억 기록 사진을 줄일 때 고른 파일을 blob: 주소로 연다(빼면 사진 넣기 실패). 둘 다 이 페이지가 만든 것만 해당.
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 	# 해시가 붙은 파일은 오래 캐시하고, 나머지(index.html·sw.js 등)는 매번 확인한다.
 	header /assets/* Cache-Control "public, max-age=31536000, immutable"
