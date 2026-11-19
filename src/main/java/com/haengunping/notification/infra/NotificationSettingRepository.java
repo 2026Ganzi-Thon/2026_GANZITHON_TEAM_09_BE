@@ -30,9 +30,16 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
             """)
     List<Long> findDueForMissionReminder(LocalTime time, LocalDate today);
 
-    /** 점검 알림을 켠 사용자(NOTI-03). */
-    @Query("SELECT s.userId FROM NotificationSetting s WHERE s.weeklyCheckReminder = true")
-    List<Long> findWeeklyCheckReminderOn();
+    /**
+     * 점검 알림을 받을 사용자(NOTI-03): 푸시 구독이 있고 점검 알림을 끄지 않은 사람.
+     * 설정 행이 없으면 기본값(켜짐)이다. 온보딩은 행을 만들지 않으므로 행이 있는 사람만 고르면 대부분 빠진다.
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT DISTINCT p.user_id FROM push_subscriptions p
+            LEFT JOIN notification_settings s ON s.user_id = p.user_id
+            WHERE s.user_id IS NULL OR s.weekly_check_reminder
+            """)
+    List<Long> findWeeklyCheckReminderTargets();
 
     /** 오늘 보냄으로 표시한다. 1이면 이 실행이 보낼 차례, 0이면 이미 다른 실행이 보냈다. */
     @Modifying

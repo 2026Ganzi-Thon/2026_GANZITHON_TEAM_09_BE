@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 점검 알림(NOTI-03): 일요일 18:00(KST), 점검 알림을 켠 사용자 중 이번 주 점검을 제출하지도 닫지도 않은
+ * 점검 알림(NOTI-03): 일요일 18:00(KST), 점검 알림을 켠(설정 행이 없으면 기본 켜짐) 사용자 중 이번 주 점검을 제출하지도 닫지도 않은
  * 사람(due=true)에게 1번. 민감정보 동의(ACC-05)가 없으면 점검을 못 하므로 보내지 않는다.
  * 같은 일요일에 두 번 돌아도 {@link JobRuns}가 한 번만 보낸다.
  * shortcut: 18:00에 서버가 꺼져 있었으면 그 주 알림은 건너뛴다(점검 창은 그날 밤까지라 늦은 알림의 의미가 작다).
@@ -51,7 +51,7 @@ public class CheckReminderJob {
     int remindOn(LocalDate sunday) {
         int[] reminded = {0};
         jobs.runOnce(JobName.CHECK_REMINDER, sunday, () -> {
-            List<Long> on = settings.findWeeklyCheckReminderOn();
+            List<Long> on = settings.findWeeklyCheckReminderTargets();
             Set<Long> recorded = checks.usersWithRecord(sunday.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)), on);
             for (long userId : on) {
                 if (!recorded.contains(userId) && accounts.hasSensitiveConsent(userId)) {
