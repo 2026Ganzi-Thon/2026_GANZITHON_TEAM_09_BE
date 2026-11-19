@@ -21,6 +21,10 @@ public interface PingRepository extends JpaRepository<Ping, Ping.Key> {
 
     List<Ping> findByDateAndUserIdIn(LocalDate date, Collection<Long> userIds);
 
+    /** 내가 핑을 남긴 날짜(from~to 양끝 포함), 날짜순. 기본 키(user_id, date)로 찾는다. */
+    @Query("SELECT p.date FROM Ping p WHERE p.userId = :userId AND p.date BETWEEN :from AND :to ORDER BY p.date")
+    List<LocalDate> findDates(long userId, LocalDate from, LocalDate to);
+
     @Modifying
     @Query("DELETE FROM Ping p WHERE p.userId = :userId")
     int deleteByUserId(long userId);

@@ -140,6 +140,41 @@ class MissionControllerTest extends IntegrationTest {
                 .andExpect(jsonPath("$.missions[0].size").isEmpty());
     }
 
+    // 프론트 '이번 달 내가 남긴 핑'(백엔드 회신 요청 1절 #1). 날짜순, 그 달 것만, 내 것만.
+    @Test
+    void 내_기록에_그_달_내가_핑을_남긴_날짜를_준다() throws Exception {
+        java.time.YearMonth month = java.time.YearMonth.from(LocalDate.now(clock));
+        long other = createUser();
+        try {
+            ping(me, month.atDay(15));
+            ping(me, month.atDay(1));
+            ping(me, month.minusMonths(1).atEndOfMonth()); // 지난달
+            ping(other, month.atDay(2)); // 다른 사람
+
+            mvc.perform(get(ApiPaths.V1 + "/me/records").param("month", month.toString()).with(as(me)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.pings.length()").value(2))
+                    .andExpect(jsonPath("$.pings[0]").value(month.atDay(1).toString()))
+                    .andExpect(jsonPath("$.pings[1]").value(month.atDay(15).toString()));
+        } finally {
+            jdbc.update("DELETE FROM pings WHERE user_id IN (?, ?)", me, other);
+            deleteUser(other);
+        }
+    }
+
+    @Test
+    void 핑이_없는_달은_빈_목록() throws Exception {
+        mvc.perform(get(ApiPaths.V1 + "/me/records").param("month", "2020-01").with(as(me)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.missions").isEmpty())
+                .andExpect(jsonPath("$.pings").isArray())
+                .andExpect(jsonPath("$.pings").isEmpty());
+    }
+
+    private void ping(long userId, LocalDate date) {
+        jdbc.update("INSERT INTO pings (user_id, date, emoji, created_at) VALUES (?, ?, 'SUN', now())", userId, date);
+    }
+
     @Test
     void 내_기록_month_형식이_틀리면_400() throws Exception {
         mvc.perform(get(ApiPaths.V1 + "/me/records").param("month", "2026-13").with(as(me)))
