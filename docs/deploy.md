@@ -18,7 +18,8 @@
 | [Dockerfile](../Dockerfile) | api 이미지. 서버에서 빌드, root가 아닌 사용자로 실행 |
 | [compose.prod.yaml](../compose.prod.yaml) | proxy·api·db 정의, 메모리 상한 |
 | [deploy/Caddyfile](../deploy/Caddyfile) | HTTPS 자동 발급, `/api` 연결, HSTS, 화면 CSP, 목업 사이트 |
-| [deploy/deploy.sh](../deploy/deploy.sh) | 받기 → 프론트 빌드(실서버용·목업용) → 백업 → 다시 올리기 |
+| [deploy/deploy.sh](../deploy/deploy.sh) | 받기 → 프론트 빌드(실서버용·목업용) → 백업 → 다시 올리기. `backup`·`reset` 명령도 있다 |
+| [deploy/reset.sql](../deploy/reset.sql) | 행사 직전 비우기: 사용자 데이터를 모두 지우고 시드만 남긴다(`deploy.sh reset`이 실행) |
 | [deploy/.env.prod.example](../deploy/.env.prod.example) | 서버 `.env` 양식 |
 
 ## 1. 서버 만들기 (처음 한 번, 담당 C)
@@ -87,12 +88,50 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 | 상태 | `docker compose -f compose.prod.yaml ps` |
 | DB 백업 | `./deploy/deploy.sh backup` → `backups/` |
 | 백업 되돌리기 | `gunzip -c backups/<파일> \| docker compose -f compose.prod.yaml exec -T db psql -U haengunping -d haengunping` (빈 DB에) |
+| 행사 직전 비우기 | `./deploy/deploy.sh reset` ([아래](#행사-직전-비우기-deploysh-reset)) |
 | 멈추기 | `docker compose -f compose.prod.yaml down` (볼륨은 남음) |
 
 - `deploy.sh`는 DB가 떠 있으면 배포 전에 자동으로 백업한다.
 - **시연 전날** 마지막 배포 후 백업을 하나 받아 둔다(architecture.md 4절).
 - **시연 중에는 배포하지 않는다.** 프론트 빌드 동안 몇 초 화면이 비고 api가 다시 뜨는 동안 요청이 실패한다.
 - `docker compose down -v`는 DB와 인증서를 지운다. 쓰지 않는다.
+
+### 행사 직전 비우기 (`deploy.sh reset`)
+
+연습·점검으로 쌓인 계정과 기록을 지우고 출시 직후 상태로 만든다(DEMO-03). 시연 중에는 하지 않는다.
+
+```bash
+cd ~/app/backend && ./deploy/deploy.sh reset
+```
+
+| | 내용 |
+| --- | --- |
+| 지우는 것 | `public`의 테이블 중 아래 남길 것을 뺀 **전부**: 계정·그룹·구성원·초대·대기열·차단·신고·기분·미션·성장·캐릭터·점검·알림 구독·설정·도움 카드·`job_runs`. 식별자 번호도 1부터 다시 시작 |
+| 남기는 것 | `flyway_schema_history`(지우면 다음 기동 때 마이그레이션이 처음부터 다시 돌아 실패), `help_items`(도움받을 곳 시드), `mission_topics`(미션 주제), `service_sync_log`(동기화 기록) |
+| 새 테이블 | 남길 목록에 없으면 기본으로 지워진다. 시드나 운영 기록이 생기면 `deploy/reset.sql`의 목록에 더하고 `ResetScriptTest`의 `KEEP`도 같이 고친다 |
+
+순서(스크립트가 한다):
+
+1. **서버 주소 확인**: `.env`의 `SITE_ADDRESS`를 그대로 입력해야 진행한다(엉뚱한 서버에서 실수로 돌리는 것을 막는다). 입력 없이 한 줄로 돌리려면 `RESET_CONFIRM=<주소> ./deploy/deploy.sh reset`.
+2. **백업**: `backups/`에 저장하고, 압축이 온전하고 덤프가 끝까지 쓰였는지(`PostgreSQL database dump complete`) 확인한다. 아니면 지우지 않고 멈춘다.
+3. **api 멈춤**: 지우는 동안 새 기록이 들어오지 않게 한다. 화면은 잠깐 API 오류가 난다.
+4. **비우기**: 한 트랜잭션(`psql -1`, `ON_ERROR_STOP`)이라 실패하면 아무것도 지워지지 않고, api를 다시 시작한 뒤 멈춘다. `CASCADE`를 쓰지 않아 시드 테이블이 지울 테이블을 참조하게 되면 같이 지우지 않고 오류로 멈춘다.
+5. **api 다시 시작**: 메모리에만 있는 요청 제한 기록(계정 생성 IP당 한도 등)도 비워진다. 컨테이너 시작 성공이 Spring Boot 기동을 뜻하지 않으므로, proxy 컨테이너에서 `http://api:8080/api/v1/health`가 `UP`일 때까지 최대 60초 기다린다.
+6. **결과 출력**: `users`·`groups`는 0, `help_items`·`mission_topics`는 0보다 커야 한다. 5에서 api가 뜨지 않았으면 결과를 보여 준 뒤 실패(종료 코드 1)로 끝난다 — `logs api`로 사유를 본다.
+
+**행사 전에 한 번, 백업으로 되돌릴 수 있는지 확인한다.** 스크립트는 백업이 끝까지 쓰였는지만 보고 실제 복원은 해 보지 않는다. 실서버 DB를 건드리지 않게 같은 db 컨테이너 안의 임시 DB에 넣어 본다.
+
+```bash
+F=backups/<방금 받은 파일>.sql.gz
+docker compose -f compose.prod.yaml exec -T db sh -c 'createdb -U "$POSTGRES_USER" restore_check'
+gunzip -c "$F" | docker compose -f compose.prod.yaml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d restore_check -v ON_ERROR_STOP=1 -q'
+docker compose -f compose.prod.yaml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d restore_check -c "SELECT count(*) AS users FROM users"'
+docker compose -f compose.prod.yaml exec -T db sh -c 'dropdb -U "$POSTGRES_USER" restore_check'
+```
+
+오류 없이 끝나고 `users`가 백업 당시 수와 같으면 된다. 확인 뒤 `restore_check`는 반드시 지운다(위 마지막 줄).
+
+비운 뒤에 할 일: 온라인 그룹 자리 시드(DEMO-03, #58), 행사용 계정 생성 한도(DEMO-05, #59), 5절 보안 점검표. 잘못 지웠으면 방금 받은 백업을 위 "백업 되돌리기"로 되돌린다.
 
 ### 행사 당일 계정 생성 한도 올리기 (DEMO-05)
 
