@@ -132,7 +132,7 @@ docker compose -f compose.prod.yaml exec -T db sh -c 'dropdb -U "$POSTGRES_USER"
 
 오류 없이 끝나고 `users`가 백업 당시 수와 같으면 된다. 확인 뒤 `restore_check`는 반드시 지운다(위 마지막 줄).
 
-비운 뒤에 할 일: 온라인 그룹 자리 시드(DEMO-04, #58), 행사용 계정 생성 한도(DEMO-05, #59), 5절 보안 점검표. 잘못 지웠으면 방금 받은 백업을 위 "백업 되돌리기"로 되돌린다.
+비운 뒤에 할 일: 온라인 그룹 자리 시드(DEMO-04, #58, `./deploy/deploy.sh seed`, 아래 절), 행사용 계정 생성 한도(DEMO-05, #59), 5절 보안 점검표. 잘못 지웠으면 방금 받은 백업을 위 "백업 되돌리기"로 되돌린다.
 
 ### 시연용 ONLINE 그룹 시드 (#58, DEMO-04)
 
@@ -142,13 +142,18 @@ docker compose -f compose.prod.yaml exec -T db sh -c 'dropdb -U "$POSTGRES_USER"
 
 시드는 일반 Flyway 마이그레이션이 아니다. 기존 계정·그룹·캐릭터·대기열이 있는 DB에서는 삽입을 거부한다. 최초 시드가 온전한 상태에서 다시 실행하면 데이터를 변경하지 않는다. 신규 사용자가 가입하거나 그룹에 참여한 뒤에는 재실행하지 않는다.
 
+백업과 승인된 reset이 끝난 뒤, 실제 사용자가 들어오기 전에 서버에서 한 번 실행한다. 시드를 넣고 바로 검증 SQL까지 돌린다. 어느 하나라도 실패하면 오류를 내고 멈춘다.
+
 ```bash
-# 백업 및 승인된 reset이 완료된 뒤 실행한다. 반드시 실서버 최초 시연 전 검증한다.
+./deploy/deploy.sh seed
+```
+
+`deploy.sh seed`가 하는 일은 아래 두 명령과 같다. 스크립트를 쓸 수 없을 때만 직접 실행한다.
+
+```bash
 docker compose -f compose.prod.yaml exec -T db \
   sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' \
   < deploy/seed-demo-online.sql
-
-# 실제 사용자 유입 이전에 실행한다.
 docker compose -f compose.prod.yaml exec -T db \
   sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d haengunping' \
   < deploy/verify-demo-online.sql
@@ -162,7 +167,7 @@ SQL 직접 삽입으로는 `GroupCreatedEvent`가 발생하지 않아 캐릭터�
 
 시드를 적용한 뒤에는 실제 테스트 계정을 정상 API로 생성하여 온라인 매칭, 그룹 응답의 `isDemo=true` 및 `character` 존재 여부를 확인한다. 00:00 성장 확정, 00:10 비활성 정리의 동작도 검증한다.
 
-PostgreSQL 시드 통합 테스트는 CI에서 검증한다. 다만 실제 운영 서버에서의 시드 적용과 신규 사용자 매칭·성장 동작은 행사 전에 별도로 확인한다. `deploy.sh`에 별도의 자동 시드 명령을 추가하는 작업은 머지 이후 운영 담당 C와 진행한다.
+PostgreSQL 시드 통합 테스트는 CI에서 검증한다. 다만 실제 운영 서버에서의 시드 적용과 신규 사용자 매칭·성장 동작은 행사 전에 별도로 확인한다.
 
 
 ### 행사 당일 계정 생성 한도 올리기 (DEMO-05)
