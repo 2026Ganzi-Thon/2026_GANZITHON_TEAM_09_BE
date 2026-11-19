@@ -34,13 +34,14 @@ class GroupProgressProvider implements GroupProgressSource {
         this.clock = clock;
     }
 
-    /** 목록: api.md대로 today에 date, character에 characterId를 넣지 않는다(null → 응답에서 생략). */
+    /**
+     * 목록: api.md대로 today에 date를 넣지 않는다(null → 응답에서 생략).
+     * characterId는 넣는다. 프론트가 '나만 보는 캐릭터 별명'의 저장 열쇠로 쓴다(2026-11-19).
+     */
     @Override
     public Summary summary(long groupId, LocalDate today) {
         Snapshot s = snapshot(groupId, today);
-        CharacterProgress character = s.character() == null ? null
-                : new CharacterProgress(null, s.character().kind(), s.character().stage(), s.character().progress());
-        return new Summary(new TodayProgress(null, s.completed(), s.total()), character, justCompleted(groupId, today));
+        return new Summary(new TodayProgress(null, s.completed(), s.total()), s.character(), justCompleted(groupId, today));
     }
 
     @Override

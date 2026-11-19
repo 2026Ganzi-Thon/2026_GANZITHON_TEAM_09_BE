@@ -74,15 +74,18 @@ class GroupProgressProviderTest extends IntegrationTest {
     }
 
     @Test
-    void CHR10_목록에는_date_characterId_구성원별_완료가_없다() throws Exception {
+    void CHR10_목록에는_date_구성원별_완료가_없고_characterId는_있다() throws Exception {
         character("SEED", today, null);
         completed(me);
+        long characterId = jdbc.queryForObject(
+                "SELECT id FROM characters WHERE group_id = ? AND completed_on IS NULL", Long.class, group);
 
+        // characterId: 프론트가 '나만 보는 캐릭터 별명'을 그룹+캐릭터 ID로 기기에 저장한다(2026-11-19 추가)
         as(me, get(ApiPaths.V1 + "/groups"))
                 .andExpect(jsonPath("$.groups[0].today.completed").value(1))
                 .andExpect(jsonPath("$.groups[0].today.date").doesNotExist())
                 .andExpect(jsonPath("$.groups[0].character.kind").value("SEED"))
-                .andExpect(jsonPath("$.groups[0].character.characterId").doesNotExist())
+                .andExpect(jsonPath("$.groups[0].character.characterId").value(characterId))
                 .andExpect(jsonPath("$.groups[0].justCompleted").doesNotExist());
         // 상세의 구성원은 memberId·displayName뿐
         as(me, get(ApiPaths.V1 + "/groups/" + group))
