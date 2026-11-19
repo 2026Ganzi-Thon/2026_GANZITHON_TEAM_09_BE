@@ -133,6 +133,20 @@ docker compose -f compose.prod.yaml exec -T db sh -c 'dropdb -U "$POSTGRES_USER"
 
 비운 뒤에 할 일: 온라인 그룹 자리 시드(DEMO-03, #58), 행사용 계정 생성 한도(DEMO-05, #59), 5절 보안 점검표. 잘못 지웠으면 방금 받은 백업을 위 "백업 되돌리기"로 되돌린다.
 
+### 행사 당일 계정 생성 한도 올리기 (DEMO-05)
+
+행사장은 심사위원·관람객이 한 공인 IP를 같이 쓴다. 평소 한도(SEC-08, IP당 10개/시간)로는 10번째부터 가입이 429로 막힌다. 코드 변경 없이 `.env`로 올린다.
+
+1. 서버의 `.env`에서 `ACCOUNT_CREATE_LIMIT`을 올린다(예: `200`). 창은 `ACCOUNT_CREATE_WINDOW`(기본 `PT1H`).
+2. api만 다시 띄운다: `docker compose -f compose.prod.yaml up -d api` (`.env`가 바뀌면 컨테이너가 새로 만들어진다). **시연 전에 미리 한다.** 재시작 중에는 요청이 실패한다.
+3. 확인: 같은 IP에서 11번째 `POST /api/v1/accounts`가 201인지 본다.
+4. **행사가 끝나면 `ACCOUNT_CREATE_LIMIT=10`으로 되돌리고 같은 방법으로 api를 다시 띄운다.** 값을 지우면 기본 10이 쓰인다.
+
+- 창은 `PT1H` 말고 `1h`·`30m` 같은 짧은 형식도 된다(Spring Boot `Duration` 변환).
+- 0 이하나 읽을 수 없는 값(`ACCOUNT_CREATE_LIMIT=0`, `ACCOUNT_CREATE_WINDOW=abc` 등)이면 api가 뜨지 않는다. `docker compose -f compose.prod.yaml logs api`로 사유를 본다.
+- 한도는 api 프로세스 메모리에 있어 재시작하면 지금까지 센 횟수도 0이 된다.
+- Caddy가 붙인 `X-Forwarded-For`로 실제 사용자 IP를 센다(`forward-headers-strategy: native`). 행사장 와이파이 하나는 IP 하나로 보인다.
+
 ## 5. 보안 점검표 (배포 후)
 
 | 확인 | 방법 | 기대 |
