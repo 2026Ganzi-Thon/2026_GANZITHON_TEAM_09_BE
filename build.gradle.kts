@@ -52,6 +52,13 @@ tasks.test {
     // ResetScriptTest가 읽는 파일. 입력으로 선언하지 않으면 스크립트를 고쳐도 테스트가 UP-TO-DATE로 건너뛰어진다.
     inputs.file("deploy/reset.sql").withPropertyName("resetScript").withPathSensitivity(PathSensitivity.RELATIVE)
     finalizedBy(tasks.jacocoTestReport)
+    inputs.file("deploy/seed-demo-online.sql")
+        .withPropertyName("demoOnlineSeed")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    inputs.file("deploy/verify-demo-online.sql")
+        .withPropertyName("demoOnlineVerify")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.jacocoTestReport {
