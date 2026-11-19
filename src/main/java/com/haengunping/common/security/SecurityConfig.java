@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -76,6 +77,17 @@ public class SecurityConfig {
         }
 
         return http.build();
+    }
+
+    /**
+     * 방화벽(StrictHttpFirewall)이 {@code //}·{@code ;}·인코딩된 {@code /} 같은 경로를 시큐리티 체인 전에 거절할 때도
+     * {@code {code, message}}로 답한다(SEC-12). 이 빈이 없으면 예외가 서블릿 에러 페이지로 가서
+     * Spring 기본 형식 {@code {timestamp, status, error, path}}로 나간다(2026-11-19 실서버에서 발견).
+     */
+    @Bean
+    RequestRejectedHandler requestRejectedHandler(
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
+        return (request, response, e) -> resolver.resolveException(request, response, null, e);
     }
 
     /**

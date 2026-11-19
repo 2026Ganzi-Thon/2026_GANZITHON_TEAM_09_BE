@@ -207,6 +207,21 @@ class ErrorResponseTest {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
+    // 시큐리티 방화벽(StrictHttpFirewall)이 컨트롤러 전에 거절하는 경로. 처리기가 없으면 Spring 기본 형식
+    // {timestamp,status,error,path}로 나간다(2026-11-19 실서버 /api/v1/groups//pings에서 발견).
+    @Test
+    void SEC12_방화벽이_거절한_경로도_400_MALFORMED_REQUEST() throws Exception {
+        // 빌더가 경로의 //를 하나로 줄이므로 요청 URI를 직접 넣는다.
+        mvc.perform(get(ApiPaths.V1 + "/health").with(request -> {
+                    request.setRequestURI(ApiPaths.V1 + "//health");
+                    return request;
+                }))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"))
+                .andExpect(jsonPath("$.timestamp").doesNotExist())
+                .andExpect(jsonPath("$.path").doesNotExist());
+    }
+
     @Test
     @WithMockUser
     void SEC12_예상_밖_오류는_500_고정_문구이고_내부_정보가_없다() throws Exception {
