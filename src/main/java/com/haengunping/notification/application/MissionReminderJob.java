@@ -16,7 +16,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 미션 알림(NOTI-02): 매 30분, 알림 시각이 지금인 사용자 중 오늘 미션을 완료하지 않은 사람에게 1번.
- * 시각은 주입한 Clock 기준이라 시연 시계를 따른다(D-08).
  * shortcut: 서버가 꺼져 있던 30분 칸은 건너뛴다(밀린 알림은 늦게 오면 의미가 없다), 필요하면 job_runs로 따라잡기.
  */
 @Component
