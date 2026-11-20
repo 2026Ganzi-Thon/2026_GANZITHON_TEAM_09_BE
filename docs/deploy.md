@@ -54,7 +54,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 # 두 저장소를 나란히 받는다
 mkdir -p ~/app && cd ~/app
 git clone https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_09_BE.git backend
-git clone https://github.com/thdms1/Todax.git frontend
+git clone https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_09_FE.git frontend
 
 # 비밀값
 cd backend

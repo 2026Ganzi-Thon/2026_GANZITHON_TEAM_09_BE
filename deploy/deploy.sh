@@ -12,6 +12,8 @@ cd "$(dirname "$0")/.."          # 백엔드 저장소 루트
 
 FRONTEND_DIR=$(grep -E '^FRONTEND_DIR=' .env | cut -d= -f2- || true)
 FRONTEND_DIR=${FRONTEND_DIR:-../frontend}
+# 프론트 공식 저장소(대회 organization). 예전에 개인 저장소에서 clone한 서버도 배포 때 이 주소로 맞춘다.
+FRONTEND_REPO=https://github.com/2026Ganzi-Thon/2026_GANZITHON_TEAM_09_FE.git
 COMPOSE=(docker compose -f compose.prod.yaml)
 
 backup() {
@@ -123,7 +125,12 @@ esac
 
 echo "== 저장소 최신으로 받기"
 git pull --ff-only
-git -C "$FRONTEND_DIR" pull --ff-only
+current_repo=$(git -C "$FRONTEND_DIR" remote get-url origin)
+if [ "$current_repo" != "$FRONTEND_REPO" ]; then
+  echo "프론트 저장소 주소를 공식 저장소로 바꿉니다: $current_repo → $FRONTEND_REPO"
+  git -C "$FRONTEND_DIR" remote set-url origin "$FRONTEND_REPO"
+fi
+git -C "$FRONTEND_DIR" pull --ff-only origin main
 
 echo "== 프론트 빌드 (dist: 실서버 API 모드, dist-demo: 시연용 목업 모드, D-12)"
 docker run --rm \
