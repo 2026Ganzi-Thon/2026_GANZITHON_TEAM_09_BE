@@ -57,6 +57,16 @@ class HelpCenterContactSeedTest extends IntegrationTest {
     }
 
     @Test
+    void 연락처가_있는_센터의_안내_문구는_다른_곳에서_연락처를_찾으라고_하지_않는다() {
+        List<String> methods = jdbc.sql(
+                        "SELECT apply_method FROM help_items WHERE kind = 'LOCAL_CENTER' AND phone IS NOT NULL")
+                .query(String.class)
+                .list();
+
+        assertThat(methods).hasSize(25).allSatisfy(m -> assertThat(m).isEqualTo("센터에 전화 또는 방문"));
+    }
+
+    @Test
     void 도움받기_API가_센터의_전화와_주소를_그대로_준다() throws Exception {
         mvc.perform(get(ApiPaths.V1 + "/help/items"))
                 .andExpect(jsonPath("$.items[?(@.id == 'center-마포구')].phone").value("02-3272-4937"))
