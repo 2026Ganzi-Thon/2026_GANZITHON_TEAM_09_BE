@@ -140,6 +140,11 @@ fi
 
 echo "== api 이미지 빌드, 컨테이너 다시 올리기"
 "${COMPOSE[@]}" up -d --build --remove-orphans
+
+# Caddyfile은 파일 하나만 연결돼 있어, git pull이 새 파일로 바꿔 넣으면 돌던 proxy는 예전 파일을 계속 본다.
+# 이미지·compose 설정이 그대로면 위 up -d도 proxy를 다시 만들지 않으므로, 매번 새로 만들어 CSP 등 변경을 반영한다.
+echo "== proxy 다시 만들기 (Caddyfile 반영)"
+"${COMPOSE[@]}" up -d --force-recreate --no-deps proxy
 docker image prune -f > /dev/null
 
 echo "== 상태"

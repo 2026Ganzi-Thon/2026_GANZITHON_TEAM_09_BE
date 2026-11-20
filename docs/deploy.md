@@ -92,6 +92,7 @@ curl -s https://haengunping.duckdns.org/api/v1/health
 | 멈추기 | `docker compose -f compose.prod.yaml down` (볼륨은 남음) |
 
 - `deploy.sh`는 DB가 떠 있으면 배포 전에 자동으로 백업한다.
+- `deploy.sh`는 마지막에 proxy를 매번 새로 만든다. `deploy/Caddyfile`은 파일 하나만 컨테이너에 연결돼 있어서, `git pull`로 바뀌어도 돌던 proxy는 예전 파일을 계속 본다(2026-11-20 CSP의 `blob:`이 반영되지 않아 사진 넣기가 실패한 원인). 스크립트 없이 Caddyfile만 바꿨다면 `docker compose -f compose.prod.yaml up -d --force-recreate --no-deps proxy`.
 - **시연 전날** 마지막 배포 후 백업을 하나 받아 둔다(architecture.md 4절).
 - **시연 중에는 배포하지 않는다.** 프론트 빌드 동안 몇 초 화면이 비고 api가 다시 뜨는 동안 요청이 실패한다.
 - `docker compose down -v`는 DB와 인증서를 지운다. 쓰지 않는다.
