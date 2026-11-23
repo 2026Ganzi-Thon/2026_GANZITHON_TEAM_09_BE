@@ -2,7 +2,7 @@
 # Spring Boot가 관리하는 라이브러리는 버전을 적지 않고 Boot BOM을 따른다.
 
 [versions]
-spring-boot = "4.1.2"
+spring-boot = "4.2.0"
 archunit = "1.5.1"
 
 [libraries]
